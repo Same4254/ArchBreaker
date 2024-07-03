@@ -1,0 +1,9 @@
+[package]
+name = "dasm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[env]
+RUST_BACKTRACE = "1"

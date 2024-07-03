@@ -1,0 +1,6 @@
+debug/
+Debug/
+target/
+Cargo.lock
+**/*.rs.bk
+**/*.swp
