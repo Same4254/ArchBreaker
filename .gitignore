@@ -2,5 +2,6 @@ debug/
 Debug/
 target/
 Cargo.lock
+res/test
 **/*.rs.bk
 **/*.swp
