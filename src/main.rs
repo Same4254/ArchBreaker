@@ -153,7 +153,116 @@ impl Prefix_Acc
         
         Ok(())
     }
+}
 
+enum Vector_Length
+{
+    _128,
+    _256
+}
+
+enum Opcode_Map
+{
+    ONE_BYTE,
+    TWO_BYTE,
+    THREE_BYTE_38,
+    THREE_BYTE_3A,
+}
+
+struct Vex_Prefix
+{
+    vector_length: Vector_Length,
+    v_reg        : u8,
+}
+
+struct Inst_Prefix
+{
+    prefixes: Prefix_Acc,
+    rex: Option<Rex_Prefix>,
+    vex: Option<Vex_Prefix>,
+    opcode_map: Opcode_Map,
+}
+
+fn parse_vex_prefix_two_byte(byte_one: u8, mut prefix: Prefix_Acc) -> Inst_Prefix
+{
+    // TODO: bit field pattern match?
+    match byte_one & 0b11
+    {
+        0b00 => Ok(()),
+        0b01 => prefix.add_prefix(0x66),
+        0b10 => prefix.add_prefix(0xf3),
+        0b11 => prefix.add_prefix(0xf2),
+        _    => panic!("Shouldn't happen"),
+    };
+
+    let rex = Rex_Prefix {
+        w: false,
+        x: true,
+        b: true,
+        r: (byte_one & 0b10000000) == 0
+    };
+
+    let vex = Vex_Prefix {
+        vector_length: match (byte_one & 0b100) == 0
+        {
+            true  => Vector_Length::_128,
+            false => Vector_Length::_256,
+        },
+
+        v_reg: ((byte_one & 0b01111000) >> 3),
+    };
+
+    return Inst_Prefix {
+        prefixes: prefix,
+        rex: Some(rex),
+        vex: Some(vex),
+        opcode_map: Opcode_Map::TWO_BYTE
+    };
+}
+
+fn parse_vex_prefix_three_byte(byte_one: u8, byte_two: u8, mut prefix: Prefix_Acc) -> Inst_Prefix
+{
+    // TODO: bit field pattern match?
+    match byte_two & 0b11
+    {
+        0b00 => Ok(()),
+        0b01 => prefix.add_prefix(0x66),
+        0b10 => prefix.add_prefix(0xf3),
+        0b11 => prefix.add_prefix(0xf2),
+        _    => panic!("Shouldn't happen"),
+    };
+
+    let rex = Rex_Prefix {
+        w: (byte_two & 0b10000000) == 0,
+        x: (byte_one & 0b01000000) == 0,
+        b: (byte_one & 0b00100000) == 0,
+        r: (byte_one & 0b10000000) == 0,
+    };
+
+    let opcode_map = match byte_one & 0b00011111
+    {
+        0b00001 => Opcode_Map::TWO_BYTE,
+        0b00010 => Opcode_Map::THREE_BYTE_38,
+        0b00011 => Opcode_Map::THREE_BYTE_3A,
+        _ => panic!("Shouldn't happen"),
+    };
+
+    let vex = Vex_Prefix {
+        vector_length: match (byte_two & 0b100) == 0
+        {
+            true  => Vector_Length::_128,
+            false => Vector_Length::_256,
+        },
+
+        v_reg: ((byte_two & 0b01111000) >> 3),
+    };
+
+    return Inst_Prefix {
+        prefixes: prefix,
+        rex: Some(rex),
+        vex: Some(vex),
+        opcode_map: opcode_map,
+    };
 }
 
 struct ModRMByte
@@ -370,7 +479,7 @@ fn lookup_32_effective_address(reader: &mut MyReader, modrm: &ModRMByte, add_siz
             ModRMByte { md: 0b00, rm: 0b01, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(DI), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
             ModRMByte { md: 0b00, rm: 0b10, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(DI), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
 
-            ModRMByte { md: 0b00, rm: 0b00, .. } => Ok(Instruction_Operand::DREF(Dref { base: None, index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
+            ModRMByte { md: 0b00, rm: 0b00, .. } => Ok(Instruction_Operand::DREF(Dref { base: None,     index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
             ModRMByte { md: 0b00, rm: 0b01, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
             ModRMByte { md: 0b00, rm: 0b10, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
 
@@ -389,13 +498,13 @@ fn lookup_32_effective_address(reader: &mut MyReader, modrm: &ModRMByte, add_siz
             ModRMByte { md: 0b01, rm: 0b100, .. } => parse_sib_byte(reader, modrm, add_size, op_size, rex),
             ModRMByte { md: 0b10, rm: 0b100, .. } => parse_sib_byte(reader, modrm, add_size, op_size, rex),
 
-            ModRMByte { md: 0b00, rm: 0b101, .. } => Ok(Instruction_Operand::DREF(Dref { base: None, index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(4)?), res_size: op_size })),
-            ModRMByte { md: 0b00, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: 0, res_size: op_size })),
+            ModRMByte { md: 0b00, rm: 0b101, .. } => Ok(Instruction_Operand::DREF(Dref { base: None,          index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(4)?), res_size: op_size })),
+            ModRMByte { md: 0b00, .. }            => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: 0,                                   res_size: op_size })),
 
-            ModRMByte { md: 0b01, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b10, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(4)?), res_size: op_size })),
+            ModRMByte { md: 0b01, .. }            => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
+            ModRMByte { md: 0b10, .. }            => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(4)?), res_size: op_size })),
 
-            ModRMByte { md: 0b11, .. } => Ok(Instruction_Operand::REGISTER(op_reg)),
+            ModRMByte { md: 0b11, .. }            => Ok(Instruction_Operand::REGISTER(op_reg)),
 
 
             _ => Err(std::io::Error::from(std::io::ErrorKind::NotFound))
@@ -483,64 +592,110 @@ fn handle_modrm_operand(reader: &mut MyReader, mode: InstMode, op: Opcode_Operan
 
 fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instruction>
 {
-    let mut prefix = Prefix_Acc {
-        group1: None,
-        group2: None,
-        group3: None,
-        group4: None,
-    };
+    let inst_prefix: Inst_Prefix = {
+        let mut prefix = Prefix_Acc {
+            group1: None,
+            group2: None,
+            group3: None,
+            group4: None,
+        };
 
-    // TODO account for multiple prefix error here
-    // Collect the prefix bytes
-    while prefix.add_prefix(reader.peek_byte()?).is_ok() {
-        reader.take_byte();
-    };
-
-    // Read the (possible) rex prefix
-    let rex = match parse_rex_prefix(reader.peek_byte()?)
-    {
-        Some (rex) => {
+        // TODO account for multiple prefix error here
+        // Collect the prefix bytes
+        while prefix.add_prefix(reader.peek_byte()?).is_ok() {
             reader.take_byte();
-            Some(rex)
-        },
+        };
 
-        None  => None
+        match reader.peek_byte()?
+        {
+            0xc4 => {
+                reader.take_byte()?;
+                parse_vex_prefix_two_byte(reader.take_byte()?, prefix)
+            }
+
+            0xc5 => {
+                reader.take_byte()?;
+                parse_vex_prefix_three_byte(reader.take_byte()?, reader.take_byte()?, prefix)
+            }
+
+            _ => {
+                // Read the (possible) rex prefix
+                let rex = match parse_rex_prefix(reader.peek_byte()?)
+                {
+                    Some (rex) => {
+                        reader.take_byte();
+                        Some(rex)
+                    },
+
+                    None  => None
+                };
+
+                let opcode_map = match reader.peek_byte()?
+                {
+                    0x0F => {
+                        reader.take_byte()?;
+                        match reader.peek_byte()?
+                        {
+                            0x38 => {
+                                reader.take_byte()?;
+                                Opcode_Map::THREE_BYTE_38
+                            },
+
+                            0x3A => {
+                                reader.take_byte();
+                                Opcode_Map::THREE_BYTE_3A
+                            },
+
+                            _    => Opcode_Map::TWO_BYTE
+                        }
+                    },
+
+                    _ => Opcode_Map::ONE_BYTE,
+                };
+
+                Inst_Prefix {
+                    prefixes: prefix,
+                    rex: rex,
+                    vex: None,
+                    opcode_map: opcode_map,
+                }
+            }
+        }
     };
 
     let opcode: u8 = reader.take_byte()?;
 
-    let operand_override = match prefix.group3
-    {
-        Some (Prefix_Group3::Operand_Override_66) => true,
-        _ => false,
-    };
-
-    let address_override = match prefix.group4
-    {
-        Some (Prefix_Group4::Address_Override_67) => true,
-        _ => false,
-    };
-
-    let rex_w = match rex.as_ref()
-    {
-        Some (r) => r.w,
-        _ =>          false
-    };
-
-    let mut mod_rm_byte: Option<ModRMByte> = None;
-    let res: Opcode_Table_Result = match search_opcode_one_byte(opcode, mode, operand_override, address_override, rex_w)
-    {
-        None =>
+    let (res, mod_rm_byte) : (Opcode_Table_Result, Option<ModRMByte>) = {
+        // hypothetical ModRMByte. Needed for AVX instruction to check if using register or memory
+        // operation. (0x02: vmovlps and vmovhlps, cause this)
+        let test_mod_rm_byte: Option<ModRMByte> = match reader.peek_byte()
         {
-            mod_rm_byte = Some(ModRMByte::new(reader.take_byte()?));
-            match search_opcode_one_byte_extention(mode, opcode, mod_rm_byte.as_ref().unwrap())
-            {
-                Some (ins) => ins,
-                None => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-            }
-        }
+            Ok(val) => Some(ModRMByte::new(val)),
+            Err(..) => None
+        };
 
-        Some(res) => res,
+        match search_opcode_one_byte(opcode, mode, operand_override, address_override, rex_w)
+        {
+            None =>
+            {
+                match search_opcode_one_byte_extention(mode, opcode, test_mod_rm_byte.as_ref().unwrap())
+                {
+                    // Here, the ModRM byte is required, thus it must exist and the byte is claimed
+                    Some (ins) => {reader.take_byte()?; (ins, test_mod_rm_byte)},
+                    None => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
+                }
+            }
+
+            // finalize the modrm optional by checking if any operand ended up needing it. If not, make it None.
+            // If any operand ended up needing the ModRM, claim the byte in the byte stream
+            Some(res) => (res, 
+                match res.operands.iter().any(|&x| match x { Some(Opcode_Operand::MODRM_BYTE(..)) => true, _ => false })
+                {
+                    true  => { reader.take_byte()?; test_mod_rm_byte },
+                    false => None,
+                }
+            ),
+        }
     };
 
     let mut operands: [Option<Instruction_Operand>; 4] = [None, None, None, None];
@@ -605,7 +760,7 @@ fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instructi
                     Opcode_Operand_Dis::Ov => operands[i] = Some(Instruction_Operand::DREF(Dref { base: None, index: None, scale: 0, disp: 
                         match op_size
                         {
-                            Register_Size::_64 => bytes_to_int(reader.take_bytes(4)?),
+                            Register_Size::_64 => bytes_to_int(reader.take_bytes(8)?),
                             Register_Size::_32 => bytes_to_int(reader.take_bytes(4)?),
                             Register_Size::_16 => bytes_to_int(reader.take_bytes(2)?),
                             _ => panic!("Unexpected immediate size!"),
@@ -757,7 +912,7 @@ struct FileMetadata
 #[derive(Debug)]
 enum SectionType
 {
-    NULL,  
+    NULL,
     PROGBITS,
     SYMTAB,
     STRTAB,
