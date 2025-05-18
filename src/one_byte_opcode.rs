@@ -1,6 +1,7 @@
-use crate::{registers::*, Inst_Prefix, Instruction_Operand, ModRMByte, Prefix_Acc, Prefix_Group1, Prefix_Group3};
+use crate::{registers::*, Inst_Prefix, ModRMByte, Prefix_Acc, Prefix_Group1, Prefix_Group3};
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum InstMode
 {
     x64,
@@ -8,6 +9,7 @@ pub enum InstMode
 }
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Instruction_Name
 {
     PUSH,
@@ -92,7 +94,7 @@ pub enum Instruction_Name
     MOVSW, MOVSD, MOVSB, MOVSQ,
     CMPSB, CMPSW, CMPSD, CMPSQ,
 
-    STOSB, STOSW, STOSD, STOSQ,
+    STOS, STOSB, STOSW, STOSD, STOSQ,
     LODSB, LODSW, LODSD, LODSQ,
     SCASB, SCASW, SCASD, SCASQ,
 
@@ -114,20 +116,47 @@ pub enum Instruction_Name
     CLC, STC, CLI, STI, CLD, STD,
 
     ROL, ROR, RCL, RCR, SHL, SHR, SAR,
-    XABORT, XBEGIN,
+    // XABORT, XBEGIN,
 
-    LAR, LSL,
-    SYSCALL, SYSRET,
-    CLTS, 
+    // LAR, LSL,
+    SYSCALL, // SYSRET,
+    // CLTS, 
 
-    INVD, WBINVD, PRE_FETCH_W,
+    // INVD, WBINVD, PRE_FETCH_W,
 
-    V_MOV_UPS, V_MOV_UPD, V_MOV_SS, V_MOV_SD,
-    V_MOV_DDUP, V_MOV_SLDUP, V_MOV_LPD, V_MOV_LPS,
+    // V_MOV_UPS, V_MOV_UPD, V_MOV_SS, V_MOV_SD,
+    // V_MOV_DDUP, V_MOV_SLDUP, V_MOV_LPD, V_MOV_LPS,
+    // V_MOV_HPS, V_MOV_HPD,
+
+    // V_UNPACK_HPD, V_UNPACK_HPS,
+    // V_UNPACK_LPD, V_UNPACK_LPS,
+
+    FADD, FMUL, FCOM, FCOMP, FSUB, FSUBR, FDIV, FDIVR,
+    FLD, FST, FSTP, FLDENV, FLDCW, FSTENV, FSTCW,
+    FXCH, FNOP, FCHS, FABS, FTST, FXAM, F2XM1,
+    FYL2X, FPTAN, FPATAN, FXTRACT, FPREM1,
+    FDECSTP, FINCSTP,
+    FLD1, FLDL2T, FLDL2E, FLDPI, FLDLG2, FLDLN2,
+    FLDZ, FPREM, FYL2XP1, FSQRT, FSINCOS, FRNDINT,
+    FSCALE, FSIN, FCOS,
+    FUCOMPP, FCMOVB, FCMOVBE, FCMOV, FCMOVU,
+    FIADD, FIMUL, FICOM, FICOMP, FISUB, FISUBR, FIDIV, FIDIVR,
+    FILD, FISTTP, FIST, FISTP, FCMOVNB, FCMOVNBE, FCOMI,
+    FCMOVNE, FCMOVNU, FUCOMI, FCLEX, FINIT,
+    FSAVE, FSTSW, FRSTOR, FFREE, FUCOM, FUCOMP,
+    FADDP, FSUBRP, FDIVRP, FMULP, FSUBP, FDIVP,
+    FCOMPP, FBSTP, FBLD, FCOMIP, FUCOMIP, FCMOVE,
+}
+
+impl std::fmt::Display for Instruction_Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 // Some opcodes tell you the register, but not the exact size. The size is determined by other factors
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Register_Unsized
 {
     eAX,
@@ -158,7 +187,7 @@ pub enum Register_Unsized
     r15,
 }
 
-pub fn size_register(reg: Register_Unsized, size: Register_Size) -> Option<Register>
+pub fn size_register(reg: Register_Unsized, size: Register_Size) -> std::io::Result<Register>
 {
     match reg
     {
@@ -192,6 +221,7 @@ pub fn size_register(reg: Register_Unsized, size: Register_Size) -> Option<Regis
 }
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Register_Known_Or_Unsized
 {
     UNSIZED(Register_Unsized),
@@ -200,18 +230,31 @@ pub enum Register_Known_Or_Unsized
 }
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Opcode_Operand_ModRM
 {
     Eb, Ev, Ev_d64, Ew,
     Gb, Gv, Gw, Gz,
-    M, Ma, Mp,
+    // Hx,
+    M, Ma, Mp, //  Mq, Wx,
     Sw,
 
-    Vps, Vx, Vpd, Vss, Vsd,
-    Wps, Wss, Wsd, Wpd,
+    FLOAT_Single_Real,
+    FLOAT_14_28_byte,
+    FLOAT_2_byte,
+    FLOAT_DWORD_INTEGER,
+    FLOAT_DOUBLE_REAL,
+    FLOAT_98_108_byte,
+    FLOAT_WORD_INTEGER,
+    FLOAT_PACKED_BCD,
+    FLOAT_QUAD_INTEGER,
+
+    // Vps, Vx, Vpd, Vss, Vsd, Vq,
+    // Wps, Wss, Wsd, Wpd,
 }
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Opcode_Operand_Dis
 {
     Jb, Jz,
@@ -220,12 +263,14 @@ pub enum Opcode_Operand_Dis
 }
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Opcode_Operand_Imm
 {
     Ib, Iw, Iv, Iz,
 }
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Opcode_Operand
 {
     Yb, Yv, Yz,
@@ -242,40 +287,1805 @@ pub enum Opcode_Operand
     REGISTER_UNSIZED(Register_Unsized),
     REGISTER_REX_PAIR((Register_Known_Or_Unsized,
                        Register_Known_Or_Unsized)),
+
+    FLOAT_AX,
 }
 
 #[derive(Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
 pub struct Opcode_Table_Result
 {
-    pub instruction:Instruction_Name,
+    pub instruction: Instruction_Name,
     pub operands: [Option<Opcode_Operand>; 4]
 }
 
-macro_rules! declare_table {
-    ($table_name:ident,
-        $(($op:expr, $inst_mode:pat, $operand_override:pat, $address_override:pat, $rex_w:pat, $instruction:expr, $operand1:expr, $operand2:expr, $operand3:expr, $operand4:expr)),+
-        $(,)?
-    ) => {
-        pub fn $table_name(opcode: u8, mode: InstMode, operand_override: bool, address_override: bool, rex_w: bool) -> Option<Opcode_Table_Result>
-        {
-            let x = (opcode, mode, operand_override, address_override, rex_w);
-            match x
-            {
-                $(
-                    ($op, $inst_mode, $operand_override, $address_override, $rex_w) => 
-                    Some(Opcode_Table_Result {
-                        instruction: $instruction,
-                        operands: [ $operand1,
-                                    $operand2,
-                                    $operand3,
-                                    $operand4]
-                    }),
-                )+
+// macro_rules! declare_table {
+//     ($table_name:ident,
+//         $(($op:expr, $inst_mode:pat, $operand_override:pat, $address_override:pat, $rex_w:pat, $instruction:expr, $operand1:expr, $operand2:expr, $operand3:expr, $operand4:expr)),+
+//         $(,)?
+//     ) => {
+//         pub fn $table_name(opcode: u8, mode: InstMode, operand_override: bool, address_override: bool, rex_w: bool) -> Option<Opcode_Table_Result>
+//         {
+//             let x = (opcode, mode, operand_override, address_override, rex_w);
+//             match x
+//             {
+//                 $(
+//                     ($op, $inst_mode, $operand_override, $address_override, $rex_w) => 
+//                     Some(Opcode_Table_Result {
+//                         instruction: $instruction,
+//                         operands: [ $operand1,
+//                                     $operand2,
+//                                     $operand3,
+//                                     $operand4]
+//                     }),
+//                 )+
+// 
+//                 _ => None
+//             }
+//         }
+//     };
+// }
 
-                _ => None
-            }
-        }
-    };
+// Some(Opcode_Operand::REGISTER(search_register(modrm.rm, Register_Type::x87, Register_Size::_80, None).unwrap())),
+
+fn d8_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let d8_row = (modrm.byte & 0xF0) >> 4;
+    let d8_col = (modrm.byte & 0x0F) >> 0;
+    let d8_lookup = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST1)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST2)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST3)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST4)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST5)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST6)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST7)),
+            None,
+            None,
+        ],
+    ];
+
+    match (d8_row, d8_col > 0x7) {
+        (0xc, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FADD,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        (0xd, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCOM,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        (0xe, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUB,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        (0xf, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIV,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        (0xc, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FMUL,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        (0xd, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCOMP,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        (0xe, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUBR,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        (0xf, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIVR,
+            operands: d8_lookup[(d8_col % 8) as usize],
+        }),
+        _ => None,
+    }
+}
+
+fn d9_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    match modrm.byte {
+        0xc0 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST0)),
+                None,
+                None,
+            ],
+        }),
+
+        0xc1 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST1)),
+                None,
+                None,
+            ],
+        }),
+        0xc2 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST2)),
+                None,
+                None,
+            ],
+        }),
+        0xc3 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST3)),
+                None,
+                None,
+            ],
+        }),
+        0xc4 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST4)),
+                None,
+                None,
+            ],
+        }),
+        0xc5 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST5)),
+                None,
+                None,
+            ],
+        }),
+        0xc6 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST6)),
+                None,
+                None,
+            ],
+        }),
+        0xc7 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST7)),
+                None,
+                None,
+            ],
+        }),
+
+        0xD0 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FNOP,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xE0 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCHS,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xE1 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FABS,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xE4 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FTST,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xE5 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXAM,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF0 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::F2XM1,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF1 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FYL2X,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF2 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FPTAN,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF3 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FPATAN,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF4 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXTRACT,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF5 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FPREM1,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF6 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDECSTP,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF7 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FINCSTP,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xc8 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST0)),
+                None,
+                None,
+            ],
+        }),
+
+        0xc9 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST1)),
+                None,
+                None,
+            ],
+        }),
+        0xca => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST2)),
+                None,
+                None,
+            ],
+        }),
+        0xcb => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST3)),
+                None,
+                None,
+            ],
+        }),
+        0xcc => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST4)),
+                None,
+                None,
+            ],
+        }),
+        0xcd => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST5)),
+                None,
+                None,
+            ],
+        }),
+        0xce => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST6)),
+                None,
+                None,
+            ],
+        }),
+        0xcf => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FXCH,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::REGISTER(ST7)),
+                None,
+                None,
+            ],
+        }),
+
+
+
+        0xE8 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD1,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xE9 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDL2T,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xEA => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDL2E,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xEB => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDPI,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xEC => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDLG2,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xED => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDLN2,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xEE => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDZ,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF8 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FPREM,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xF9 => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FYL2XP1,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xFA => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSQRT,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xFB => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSINCOS,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xFC => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FRNDINT,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xFD => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSCALE,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xFE => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSIN,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        0xFF => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCOS,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        }),
+
+        _ => None,
+    }
+}
+
+fn da_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let da_row = (modrm.byte & 0xF0) >> 4;
+    let da_col = (modrm.byte & 0x0F) >> 0;
+    let da_lookup = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST1)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST2)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST3)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST4)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST5)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST6)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST7)),
+            None,
+            None,
+        ],
+    ];
+
+    if modrm.byte == 0xE9 {
+        return Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FUCOMPP,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        })
+    }
+
+    match (da_row, da_col > 0x7) {
+        (0xc, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVB,
+            operands: da_lookup[(da_col % 8) as usize],
+        }),
+        (0xd, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVBE,
+            operands: da_lookup[(da_col % 8) as usize],
+        }),
+
+        (0xc, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVE,
+            operands: da_lookup[(da_col % 8) as usize],
+        }),
+        (0xd, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVU,
+            operands: da_lookup[(da_col % 8) as usize],
+        }),
+        _ => None,
+    }
+}
+
+fn db_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let db_row = (modrm.byte & 0xF0) >> 4;
+    let db_col = (modrm.byte & 0x0F) >> 0;
+    let db_lookup = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST1)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST2)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST3)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST4)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST5)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST6)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST7)),
+            None,
+            None,
+        ],
+    ];
+
+    if modrm.byte == 0xe2 {
+        return Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCLEX,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ]
+        });
+    }
+
+    if modrm.byte == 0xe3 {
+        return Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FINIT,
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ]
+        });
+    }
+
+    match (db_row, db_col > 0x7) {
+        (0xc, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVNB,
+            operands: db_lookup[(db_col % 8) as usize],
+        }),
+        (0xd, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVNBE,
+            operands: db_lookup[(db_col % 8) as usize],
+        }),
+        // (0xe, false) => Some(Opcode_Table_Result {
+        //     instruction: Instruction_Name::FSUB,
+        //     operands: d8_lookup[(d8_col % 8) as usize],
+        // }),
+        (0xf, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCOMI,
+            operands: db_lookup[(db_col % 8) as usize],
+        }),
+        (0xc, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVNE,
+            operands: db_lookup[(db_col % 8) as usize],
+        }),
+        (0xd, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCMOVNU,
+            operands: db_lookup[(db_col % 8) as usize],
+        }),
+        (0xe, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FUCOMI,
+            operands: db_lookup[(db_col % 8) as usize],
+        }),
+        // (0xf, true) => Some(Opcode_Table_Result {
+        //     instruction: Instruction_Name::FDIVR,
+        //     operands: d8_lookup[(d8_col % 8) as usize],
+        // }),
+        _ => None,
+    }
+}
+
+fn dc_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let dc_row = (modrm.byte & 0xF0) >> 4;
+    let dc_col = (modrm.byte & 0x0F) >> 0;
+    let dc_lookup = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST1)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST2)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST3)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST4)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST5)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST6)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST7)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+    ];
+
+    match (dc_row, dc_col > 0x7) {
+        (0xc, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FADD,
+            operands: dc_lookup[(dc_col % 8) as usize],
+        }),
+        (0xe, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUBR,
+            operands: dc_lookup[(dc_col % 8) as usize],
+        }),
+        (0xf, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIVR,
+            operands: dc_lookup[(dc_col % 8) as usize],
+        }),
+        (0xc, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FMUL,
+            operands: dc_lookup[(dc_col % 8) as usize],
+        }),
+        // (0xd, true) => Some(Opcode_Table_Result {
+        //     instruction: Instruction_Name::FCMOVNU,
+        //     operands: db_lookup[(db_col % 8) as usize],
+        // }),
+        (0xe, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUB,
+            operands: dc_lookup[(dc_col % 8) as usize],
+        }),
+        (0xf, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIV,
+            operands: dc_lookup[(dc_col % 8) as usize],
+        }),
+        _ => None,
+    }
+}
+
+fn dd_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let dd_row = (modrm.byte & 0xF0) >> 4;
+    let dd_col = (modrm.byte & 0x0F) >> 0;
+    let dd_lookup_fucom = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST1)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST2)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST3)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST4)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST5)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST6)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST7)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+    ];
+
+    let dd_lookup = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST1)),
+            None,
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST2)),
+            None,
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST3)),
+            None,
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST4)),
+            None,
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST5)),
+            None,
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST6)),
+            None,
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST7)),
+            None,
+            None,
+            None,
+        ],
+    ];
+    match (dd_row, dd_col > 0x7) {
+        (0xc, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FFREE,
+            operands: dd_lookup[(dd_col % 8) as usize],
+        }),
+        (0xd, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FST,
+            operands: dd_lookup[(dd_col % 8) as usize],
+        }),
+        (0xe, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FUCOM,
+            operands: dd_lookup_fucom[(dd_col % 8) as usize],
+        }),
+        // (0xc, true) => Some(Opcode_Table_Result {
+        //     instruction: Instruction_Name::FMUL,
+        //     operands: dd_lookup[(dd_col % 8) as usize],
+        // }),
+        (0xd, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTP,
+            operands: dd_lookup[(dd_col % 8) as usize],
+        }),
+        (0xe, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FUCOMP,
+            operands: dd_lookup[(dd_col % 8) as usize],
+        }),
+        // (0xf, true) => Some(Opcode_Table_Result {
+        //     instruction: Instruction_Name::FDIV,
+        //     operands: dd_lookup[(dd_col % 8) as usize],
+        // }),
+        _ => None,
+    }
+}
+
+fn de_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let de_row = (modrm.byte & 0xF0) >> 4;
+    let de_col = (modrm.byte & 0x0F) >> 0;
+    let de_lookup = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST1)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST2)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST3)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST4)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST5)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST6)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST7)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+    ];
+
+    if modrm.byte == 0xd9 {
+        return Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FCOMPP, 
+            operands: [
+                None,
+                None,
+                None,
+                None,
+            ],
+        })
+    }
+
+    match (de_row, de_col > 0x7) {
+        (0xc, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FADDP,
+            operands: de_lookup[(de_col % 8) as usize],
+        }),
+        // (0xd, false) => Some(Opcode_Table_Result {
+        //     instruction: Instruction_Name::FST,
+        //     operands: de_lookup[(de_col % 8) as usize],
+        // }),
+        (0xe, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUBRP,
+            operands: de_lookup[(de_col % 8) as usize],
+        }),
+        (0xf, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIVRP,
+            operands: de_lookup[(de_col % 8) as usize],
+        }),
+        (0xc, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FMULP,
+            operands: de_lookup[(de_col % 8) as usize],
+        }),
+        (0xe, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUBP,
+            operands: de_lookup[(de_col % 8) as usize],
+        }),
+        (0xf, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIVP,
+            operands: de_lookup[(de_col % 8) as usize],
+        }),
+        _ => None,
+    }
+}
+
+fn df_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let df_row = (modrm.byte & 0xF0) >> 4;
+    let df_col = (modrm.byte & 0x0F) >> 0;
+    let df_lookup = [
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST0)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST1)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST2)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST3)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST4)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST5)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST6)),
+            None,
+            None,
+        ],
+        [
+            Some(Opcode_Operand::REGISTER(ST0)),
+            Some(Opcode_Operand::REGISTER(ST7)),
+            None,
+            None,
+        ],
+    ];
+
+    if modrm.byte == 0xE0 {
+        return Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTSW,
+            operands: [
+                Some(Opcode_Operand::FLOAT_AX),
+                None,
+                None,
+                None,
+            ]
+        })
+    }
+
+    match (df_row, df_col > 0x7) {
+        (0xf, false) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCOMIP,
+            operands: df_lookup[(df_col % 8) as usize],
+        }),
+        (0xe, true) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FUCOMIP,
+            operands: df_lookup[(df_col % 8) as usize],
+        }),
+        _ => None,
+    }
+}
+
+pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+{
+    let in_bf_range = modrm.byte <= 0xBF;
+
+    match (opcode, in_bf_range, modrm)
+    {
+        (0xd8, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FADD, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FMUL, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FCOM, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FCOMP, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, true, ModRMByte { reg_op: 0b100, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FSUB, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, true, ModRMByte { reg_op: 0b101, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FSUBR, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, true, ModRMByte { reg_op: 0b110, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FDIV, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result { 
+            instruction: Instruction_Name::FDIVR, 
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]}),
+
+        (0xd8, false, modrm) => d8_lookup(opcode, modrm),
+
+        (0xd9, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]
+        }),
+
+        // 0x001 is blank
+
+        (0xd9, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FST,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]
+        }),
+
+        (0xd9, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTP,
+            operands: [
+                Some(Opcode_Operand::REGISTER(ST0)),
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_Single_Real)),
+                None,
+                None,
+            ]
+        }),
+
+        (0xd9, true, ModRMByte { reg_op: 0b100, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDENV,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_14_28_byte)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xd9, true, ModRMByte { reg_op: 0b101, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLDCW,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_2_byte)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xd9, true, ModRMByte { reg_op: 0b110, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTENV,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_14_28_byte)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xd9, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTCW,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_2_byte)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIADD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xd9, false, modrm) => d9_lookup(opcode, modrm),
+
+        (0xda, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIMUL,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FICOM,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FICOMP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, true, ModRMByte { reg_op: 0b100, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISUB,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, true, ModRMByte { reg_op: 0b101, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISUBR,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, true, ModRMByte { reg_op: 0b110, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIDIV,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIDIVR,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xda, false, modrm) => da_lookup(opcode, modrm),
+
+        (0xdb, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FILD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdb, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISTTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdb, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIST,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdb, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdb, true, ModRMByte { reg_op: 0b101, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdb, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdb, true, modrm) => db_lookup(opcode, modrm),
+
+        (0xdc, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FADD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FMUL,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCOM,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FCOMP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, true, ModRMByte { reg_op: 0b100, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUB,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, true, ModRMByte { reg_op: 0b101, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSUBR,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, true, ModRMByte { reg_op: 0b110, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIV,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FDIVR,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdc, false, modrm) => dc_lookup(opcode, modrm),
+
+        (0xdd, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FLD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdd, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISTTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdd, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FST,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdd, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdd, true, ModRMByte { reg_op: 0b100, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FRSTOR,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_98_108_byte)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdd, true, ModRMByte { reg_op: 0b110, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSAVE,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_98_108_byte)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdd, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FSTSW,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_2_byte)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdd, true, modrm) => dd_lookup(opcode, modrm),
+
+        (0xde, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIADD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIMUL,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FICOM,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FICOMP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, ModRMByte { reg_op: 0b100, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISUB,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, ModRMByte { reg_op: 0b101, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISUBR,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, ModRMByte { reg_op: 0b110, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIDIV,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIDIVR,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xde, true, modrm) => de_lookup(opcode, modrm),
+
+        (0xdf, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FILD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISTTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, true, ModRMByte { reg_op: 0b010, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FIST,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, true, ModRMByte { reg_op: 0b011, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_WORD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, true, ModRMByte { reg_op: 0b100, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FBLD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_PACKED_BCD)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, true, ModRMByte { reg_op: 0b101, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FILD,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_QUAD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, true, ModRMByte { reg_op: 0b110, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FBSTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_PACKED_BCD)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, true, ModRMByte { reg_op: 0b111, ..}) => Some(Opcode_Table_Result {
+            instruction: Instruction_Name::FISTP,
+            operands: [
+                Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::FLOAT_QUAD_INTEGER)),
+                None,
+                None,
+                None,
+            ]
+        }),
+
+        (0xdf, false, modrm) => df_lookup(opcode, modrm),
+
+        _ => None,
+    }
 }
 
 pub fn search_opcode_one_byte_extention (inst_mode: InstMode, opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
@@ -316,103 +2126,171 @@ pub fn search_opcode_one_byte_extention (inst_mode: InstMode, opcode: u8, modrm:
 
 
 
-        (_, 0x80, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
+        (_, 0x81, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
+        (_, 0x81, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
+        (_, 0x81, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
+        (_, 0x81, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
+        (_, 0x81, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
+        (_, 0x81, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
+        (_, 0x81, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
+        (_, 0x81, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None]}),
 
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
+
+        
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (InstMode::x32, 0x80, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
+        (InstMode::x32, 0x82, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
 
-        (_, 0x80, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
+
+        (_, 0x83, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
+        (_, 0x83, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
+        (_, 0x83, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
+        (_, 0x83, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
+        (_, 0x83, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
+        (_, 0x83, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
+        (_, 0x83, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
-        (_, 0x80, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
+        (_, 0x83, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
                                                                               operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
                                                                                          Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+        
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (InstMode::x32, 0x80, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+
+        // (_, 0x80, ModRMByte { reg_op: 0b000, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADD, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (_, 0x80, ModRMByte { reg_op: 0b001, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::OR, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (_, 0x80, ModRMByte { reg_op: 0b010, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::ADC, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (_, 0x80, ModRMByte { reg_op: 0b011, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SBB, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (_, 0x80, ModRMByte { reg_op: 0b100, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::AND, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (_, 0x80, ModRMByte { reg_op: 0b101, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::SUB, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (_, 0x80, ModRMByte { reg_op: 0b110, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::XOR, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
+
+        // (_, 0x80, ModRMByte { reg_op: 0b111, .. }) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMP, 
+        //                                                                       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), 
+        //                                                                                  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None]}),
 
 
 
@@ -735,569 +2613,3007 @@ pub fn search_opcode_one_byte_extention (inst_mode: InstMode, opcode: u8, modrm:
     }
 }
 
-// TODO: the modrm byte might be needed to force operations which "can only operate on memory".
-// Anything with an M operand can only operate on memory
-declare_table!(search_opcode_one_byte,
-    (0x00, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x01, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x02, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x03, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x04, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x05, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x06, InstMode::x32, _, _, false, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(ES)),                            None,                                                       None, None),
-    (0x07, InstMode::x32, _, _, false, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER(ES)),                            None,                                                       None, None),
-
-    (0x08, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x09, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x0a, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x0b, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x0c, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x0d, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x0e, InstMode::x32, _, _, false, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(ES)),                            None,                                                       None, None),
-
-
-    (0x10, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x11, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x12, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x13, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x14, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x15, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x16, InstMode::x32, _, _, false, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(SS)),                            None,                                                       None, None),
-    (0x17, InstMode::x32, _, _, false, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER(SS)),                            None,                                                       None, None),
-
-    (0x18, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x19, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x1a, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x1b, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x1c, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x1d, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x1e, InstMode::x32, _, _, _,     Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(DS)),                            None,                                                       None, None),
-    (0x1f, InstMode::x32, _, _, false, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER(DS)),                            None,                                                       None, None),
-
-
-    (0x20, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x21, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x22, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x23, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x24, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x25, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x27, InstMode::x32, _, _, false, Instruction_Name::DAA,  None,                                                          None,                                                       None, None),
-
-    (0x28, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x29, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x2a, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x2b, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x2c, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x2d, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x2f, InstMode::x32, _, _, false, Instruction_Name::DAS,  None,                                                          None,                                                       None, None),
-
-
-    (0x30, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x31, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x32, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x33, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x34, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x35, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x37, InstMode::x32, _, _, false, Instruction_Name::AAA,  None,                                                          None,                                                       None, None),
-
-    (0x38, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
-    (0x39, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
-    (0x3a, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
-    (0x3b, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-    (0x3c, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0x3d, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
-    (0x3f, InstMode::x32, _, _, false, Instruction_Name::AAS,  None,                                                          None,                                                       None, None),
-
-
-    (0x40, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None, None),
-    (0x41, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), None, None, None),
-    (0x42, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), None, None, None),
-    (0x43, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), None, None, None),
-    (0x44, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), None, None, None),
-    (0x45, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), None, None, None),
-    (0x46, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), None, None, None),
-    (0x47, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), None, None, None),
-
-    (0x48, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None, None),
-    (0x49, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), None, None, None),
-    (0x4a, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), None, None, None),
-    (0x4b, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), None, None, None),
-    (0x4c, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), None, None, None),
-    (0x4d, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), None, None, None),
-    (0x4e, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), None, None, None),
-    (0x4f, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), None, None, None),
-
-
-    (0x50, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rAX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r8)))), 
-                                                            None, None, None),
-
-    (0x51, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rCX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r9)))),
-                                                            None, None, None),
-
-    (0x52, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r10)))),
-                                                            None, None, None),
-
-    (0x53, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r11)))),
-                                                            None, None, None),
-
-    (0x54, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSP), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r12)))),
-                                                            None, None, None),
-
-    (0x55, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBP), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r13)))),
-                                                            None, None, None),
-
-    (0x56, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSI), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r14)))),
-                                                            None, None, None),
-
-    (0x57, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDI), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r15)))),
-                                                            None, None, None),
-
-
-    (0x58, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rAX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r8)))),
-                                                            None, None, None),
-
-    (0x59, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rCX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r9)))),
-                                                            None, None, None),
-
-    (0x5a, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r10)))),
-                                                            None, None, None),
-
-    (0x5b, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r11)))),
-                                                            None, None, None),
-
-    (0x5c, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSP), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r12)))),
-                                                            None, None, None),
-
-    (0x5d, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBP), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r13)))),
-                                                            None, None, None),
-
-    (0x5e, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSI), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r14)))),
-                                                            None, None, None),
-
-    (0x5f, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDI), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r15)))),
-                                                            None, None, None),
-
-
-    (0x50, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)),  None,  None, None),
-    (0x51, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)),  None,  None, None),
-    (0x52, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)),  None,  None, None),
-    (0x53, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)),  None,  None, None),
-    (0x54, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)),  None,  None, None),
-    (0x55, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)),  None,  None, None),
-    (0x56, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)),  None,  None, None),
-    (0x57, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)),  None,  None, None),
-
-    (0x58, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)),  None,  None, None),
-    (0x59, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)),  None,  None, None),
-    (0x5a, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)),  None,  None, None),
-    (0x5b, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)),  None,  None, None),
-    (0x5c, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)),  None,  None, None),
-    (0x5d, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)),  None,  None, None),
-    (0x5e, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)),  None,  None, None),
-    (0x5f, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)),  None,  None, None),
-
-
-    (0x60, InstMode::x32, true,  _, false, Instruction_Name::PUSHA,  None,                                                        None,                                                       None, None),
-    (0x60, InstMode::x32, false, _, false, Instruction_Name::PUSHAD, None,                                                        None,                                                       None, None),
-    (0x61, InstMode::x32, true,  _, false, Instruction_Name::POPA,   None,                                                        None,                                                       None, None),
-    (0x61, InstMode::x32, false, _, false, Instruction_Name::POPAD,  None,                                                        None,                                                       None, None),
-    (0x62, InstMode::x32, _,     _, false, Instruction_Name::BOUND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ma)), None, None),
-    (0x63, InstMode::x32, _,     _, false, Instruction_Name::ARPL,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gw)), None, None),
-    (0x63, InstMode::x64, _,     _, _,     Instruction_Name::MOVSXD, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
-
-    (0x68, _, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None,                                                       None,                                                    None),
-    (0x69, _, _, _, _, Instruction_Name::IMUL, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None),
-    (0x6a, _, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None,                                                       None,                                                    None),
-    (0x6b, _, _, _, _, Instruction_Name::IMUL, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None),
-
-    (0x6c, _, _, _,     _, Instruction_Name::INSB,  Some(Opcode_Operand::Yb), Some(Opcode_Operand::REGISTER(DX)), None, None),
-    (0x6d, _, _, true,  _, Instruction_Name::INSW,  Some(Opcode_Operand::Yz), Some(Opcode_Operand::REGISTER(DX)), None, None),
-    (0x6d, _, _, false, _, Instruction_Name::INSD,  Some(Opcode_Operand::Yz), Some(Opcode_Operand::REGISTER(DX)), None, None),
-
-    (0x6e, _, _, _,     _, Instruction_Name::OUTSB, Some(Opcode_Operand::REGISTER(DX)), Some(Opcode_Operand::Xb), None, None),
-    (0x6f, _, _, true,  _, Instruction_Name::OUTSW, Some(Opcode_Operand::REGISTER(DX)), Some(Opcode_Operand::Xz), None, None),
-    (0x6f, _, _, false, _, Instruction_Name::OUTSD, Some(Opcode_Operand::REGISTER(DX)), Some(Opcode_Operand::Xz), None, None),
-
-
-    (0x70, _, _, _, _, Instruction_Name::J_O,        Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x71, _, _, _, _, Instruction_Name::J_NO,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x72, _, _, _, _, Instruction_Name::J_B_NAE_C,  Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x73, _, _, _, _, Instruction_Name::J_NB_AE_NC, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x74, _, _, _, _, Instruction_Name::J_Z_E,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x75, _, _, _, _, Instruction_Name::J_NZ_NE,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x76, _, _, _, _, Instruction_Name::J_BE_NA,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x77, _, _, _, _, Instruction_Name::J_NBE_A,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-
-    (0x78, _, _, _, _, Instruction_Name::J_S,        Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x79, _, _, _, _, Instruction_Name::J_NS,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x7a, _, _, _, _, Instruction_Name::J_P_PE,     Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x7b, _, _, _, _, Instruction_Name::J_NP_PO,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x7c, _, _, _, _, Instruction_Name::J_L_NGE,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x7d, _, _, _, _, Instruction_Name::J_NL_GE,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x7e, _, _, _, _, Instruction_Name::J_LE_NG,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-    (0x7f, _, _, _, _, Instruction_Name::J_NLE_G,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
-
-
-    (0x84, _, _, _, _, Instruction_Name::TEST, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  None, None),
-    (0x85, _, _, _, _, Instruction_Name::TEST, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  None, None),
-    (0x86, _, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  None, None),
-    (0x87, _, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  None, None),
-
-    (0x88, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  None, None),
-    (0x89, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  None, None),
-    (0x8a, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  None, None),
-    (0x8b, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  None, None),
-    (0x8c, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Sw)),  None, None),
-    (0x8d, _, _, _, _, Instruction_Name::LEA,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::M)) ,  None, None),
-    (0x8e, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Sw)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)),  None, None),
-
-
-    (0x90, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rAX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r8)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x91, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rCX), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r9)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x92, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDX), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r10)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x93, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBX), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r11)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x94, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSP), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r12)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x95, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBP), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r13)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x96, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSI), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r14)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x97, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDI), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r15)))),
-                                                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x90, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0x91, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0x92, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0x93, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0x94, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0x95, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0x96, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0x97, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0x98, _,             true,  _,    _,    Instruction_Name::CBW,      None, None, None, None),
-    (0x98, _,             false, _,    _,    Instruction_Name::CWDE,     None, None, None, None),
-    (0x98, InstMode::x64, _,     _,    true, Instruction_Name::CDQE,     None, None, None, None),
-
-    (0x99, _,             true,  _,    _,    Instruction_Name::CWD,      None, None, None, None),
-    (0x99, _,             false, _,    _,    Instruction_Name::CDQ,      None, None, None, None),
-    (0x99, InstMode::x64, _,     _,    true, Instruction_Name::CQO,      None, None, None, None),
-
-    (0x9a, InstMode::x32, _,     _,    _,    Instruction_Name::far_Call, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ap)),  None, None, None),
-    (0x9b, _,             _,     _,    _,    Instruction_Name::WAIT,     None,                                                     None, None, None),
-
-    (0x9c, _,             true, _,     _,    Instruction_Name::PUSHF,    None,  None,  None, None),
-    (0x9c, InstMode::x32, _,    _,     _,    Instruction_Name::PUSHFD,   None,  None,  None, None),
-    (0x9c, InstMode::x64, _,    _,     _,    Instruction_Name::PUSHFQ,   None,  None,  None, None),
-
-    (0x9d, _,             true, _,     _,    Instruction_Name::POPF,     None,  None,  None, None),
-    (0x9d, InstMode::x32, _,    _,     _,    Instruction_Name::POPFD,    None,  None,  None, None),
-    (0x9d, InstMode::x64, _,    _,     _,    Instruction_Name::POPFQ,    None,  None,  None, None),
-
-    (0x9e, _,             _,    _,     _,    Instruction_Name::SAHF,     None,  None,  None, None),
-    (0x9f, _,             _,    _,     _,    Instruction_Name::LAHF,     None,  None,  None, None),
-
-    (0xa0, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ob)),       None, None),
-    (0xa1, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ov)),       None, None),
-    (0xa2, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ob)),       Some(Opcode_Operand::REGISTER(AL)),                            None, None),
-    (0xa3, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ov)),       Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0xa4, _,             _,    _,     _,    Instruction_Name::MOVSB,    Some(Opcode_Operand::Yb),                                      Some(Opcode_Operand::Xb),                                      None, None),
-    (0xa5, _,             _,    false, true, Instruction_Name::MOVSQ,    Some(Opcode_Operand::Yv),                                      Some(Opcode_Operand::Xv),                                      None, None),
-    (0xa5, _,             _,    true,  _,    Instruction_Name::MOVSW,    Some(Opcode_Operand::Yv),                                      Some(Opcode_Operand::Xv),                                      None, None),
-    (0xa5, _,             _,    false, _,    Instruction_Name::MOVSD,    Some(Opcode_Operand::Yv),                                      Some(Opcode_Operand::Xv),                                      None, None),
-
-    (0xa6, _,             _,    _,     _,    Instruction_Name::CMPSB,    Some(Opcode_Operand::Xb), Some(Opcode_Operand::Yb), None, None),
-    (0xa7, _,             _,    _,     _,    Instruction_Name::CMPSW,    Some(Opcode_Operand::Xv), Some(Opcode_Operand::Yv), None, None),
-    (0xa7, _,             _,    _,     _,    Instruction_Name::CMPSD,    Some(Opcode_Operand::Xv), Some(Opcode_Operand::Yv), None, None),
-    (0xa7, InstMode::x64, _,    _,     true, Instruction_Name::CMPSQ,    Some(Opcode_Operand::Xv), Some(Opcode_Operand::Yv), None, None),
-
-    (0xa8, _,             _,    _,     _,    Instruction_Name::TEST,     Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xa9, _,             _,    _,     _,    Instruction_Name::TEST,     Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None),
-
-    (0xaa, _,             _,     _, _,       Instruction_Name::STOSB,    Some(Opcode_Operand::Yb),                                Some(Opcode_Operand::REGISTER(AL)),                            None, None),
-    (0xab, _,             true,  _, _,       Instruction_Name::STOSW,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0xab, _,             false, _, _,       Instruction_Name::STOSD,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-    (0xab, InstMode::x64, _,     _, true,    Instruction_Name::STOSQ,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
-
-    (0xac, _,              _,     _, _,      Instruction_Name::LODSB,    Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::Xb), None, None),
-    (0xad, _,              true,  _, _,      Instruction_Name::LODSW,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::Xv), None, None),
-    (0xad, _,              false, _, _,      Instruction_Name::LODSD,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::Xv), None, None),
-    (0xad, InstMode::x64,  _,     _, true,   Instruction_Name::LODSQ,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                     None, None),
-
-    (0xae, _,            _,       _, _,      Instruction_Name::SCASB,    Some(Opcode_Operand::REGISTER(AL)),                             Some(Opcode_Operand::Yb), None, None),
-    (0xaf, _,            true,    _, _,      Instruction_Name::SCASW,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)),  Some(Opcode_Operand::Yv), None, None),
-    (0xaf, _,            false,   _, _,      Instruction_Name::SCASD,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)),  Some(Opcode_Operand::Yv), None, None),
-    (0xaf, InstMode::x64, _,      _, true,   Instruction_Name::SCASQ,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)),  Some(Opcode_Operand::Yv), None, None),
-
-
-    (0xb0, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(AL), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R8L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb1, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(CL), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R9L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb2, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(DL), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R10L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb3, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(BL), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R11L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb4, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(AH), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R12L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb5, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(CH), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R13L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb6, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(DH), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R14L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb7, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(BH), 
-                                                                                                        Register_Known_Or_Unsized::KNOWN(R15L)))),
-                                                                Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb0, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(AL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xb1, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(CL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xb2, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(DL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xb3, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(BL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xb4, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(AH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xb5, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(CH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xb6, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(DH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-    (0xb7, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(BH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
-
-    (0xb8, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rAX), 
-                                                                                                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r8)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xb9, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rCX), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r9)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xba, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDX), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r10)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xbb, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBX), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r11)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xbc, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSP), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r12)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xbd, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBP), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r13)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xbe, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSI), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r14)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xbf, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDI), 
-                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r15)))),
-                                                           Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    (0xb8, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-    (0xb9, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-    (0xba, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-    (0xbb, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-    (0xbc, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-    (0xbd, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-    (0xbe, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-    (0xbf, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
-
-    // TODO: VEX prefix for LES and LDS
-    (0xc2, _,             _,     _, _,    Instruction_Name::near_Ret, Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw)),    None,                                                       None, None),
-    (0xc3, _,             _,     _, _,    Instruction_Name::near_Ret, None,                                                       None,                                                       None, None),
-    (0xc4, InstMode::x32, _,     _, _,    Instruction_Name::LES,      Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gz)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp)), None, None),
-    (0xc5, InstMode::x32, _,     _, _,    Instruction_Name::LDS,      Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gz)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp)), None, None),
-
-    (0xc8, _,             _,     _, _,    Instruction_Name::ENTER,    Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw)),    Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
-    (0xc9, _,             _,     _, _,    Instruction_Name::LEAVE,    None,                                                       None,                                                       None, None),
-    (0xca, _,             _,     _, _,    Instruction_Name::far_Ret,  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw)),    None,                                                       None, None),
-    (0xcb, _,             _,     _, _,    Instruction_Name::far_Ret,  None,                                                       None,                                                       None, None),
-    (0xcc, _,             _,     _, _,    Instruction_Name::INT3,     None,                                                       None,                                                       None, None),
-    (0xcd, _,             _,     _, _,    Instruction_Name::INT,      Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None,                                                       None, None),
-    (0xce, InstMode::x32, _,     _, _,    Instruction_Name::INTO,     None,                                                       None,                                                       None, None),
-    (0xcf, _,             true,  _, _,    Instruction_Name::IRET,     None,                                                       None,                                                       None, None),
-    (0xcf, _,             false, _, _,    Instruction_Name::IRETD,    None,                                                       None,                                                       None, None),
-    (0xcf, InstMode::x64, _,     _, true, Instruction_Name::IRETQ,    None,                                                       None,                                                       None, None),
-
-    (0xd4, InstMode::x32, _,     _, _,    Instruction_Name::AAM,      Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),     None,                               None, None),
-    (0xd5, InstMode::x32, _,     _, _,    Instruction_Name::AAD,      Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),     None,                               None, None),
-    (0xd7, _,             _,     _, _,    Instruction_Name::XLATB,    None,                                                        None,                               None, None),
-    // XLAT has parameters?
-
-    (0xe0, _,             _, _, _, Instruction_Name::LOOPNZ,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-    (0xe1, _,             _, _, _, Instruction_Name::LOOPZ,     Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-    (0xe2, _,             _, _, _, Instruction_Name::LOOP,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-    (0xe3, _,             _, _, _, Instruction_Name::JrCXZ,     Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-    (0xe4, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       None, None),
-    (0xe5, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       None, None),
-    (0xe6, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       Some(Opcode_Operand::REGISTER(AL)),                            None, None),
-    (0xe7, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None),
-
-    (0xe8, _,             _, _, _, Instruction_Name::near_Call, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)),       None,                                                          None, None),
-    (0xe9, _,             _, _, _, Instruction_Name::near_Jmp,  Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)),       None,                                                          None, None),
-    (0xea, InstMode::x32, _, _, _, Instruction_Name::far_Jmp,   Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ap)),       None,                                                          None, None),
-    (0xeb, _,             _, _, _, Instruction_Name::short_Jmp, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-    (0xec, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::REGISTER(DX)),                            None, None),
-    (0xed, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::REGISTER(DX)),                            None, None),
-    (0xee, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::REGISTER(DX)),                            Some(Opcode_Operand::REGISTER(AL)),                            None, None),
-    (0xef, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::REGISTER(DX)),                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None),
-
-
-    (0xf1, _,             _, _, _, Instruction_Name::INT1,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-    (0xf4, _,             _, _, _, Instruction_Name::HLT,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-    (0xf5, _,             _, _, _, Instruction_Name::CMC,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
-
-    (0xf8, _,             _, _, _, Instruction_Name::CLC,       None,                                                          None,                                                          None, None),
-    (0xf9, _,             _, _, _, Instruction_Name::STC,       None,                                                          None,                                                          None, None),
-    (0xfa, _,             _, _, _, Instruction_Name::CLI,       None,                                                          None,                                                          None, None),
-    (0xfb, _,             _, _, _, Instruction_Name::STI,       None,                                                          None,                                                          None, None),
-    (0xfc, _,             _, _, _, Instruction_Name::CLD,       None,                                                          None,                                                          None, None),
-    (0xfd, _,             _, _, _, Instruction_Name::STD,       None,                                                          None,                                                          None, None),
-);
-
-pub fn search_opcode_two_byte(opcode: u8, mode: InstMode, prefix: Inst_Prefix, modrm: Option<ModRMByte>) -> Option<Opcode_Table_Result>
+pub fn search_opcode_one_byte(
+    opcode: u8,
+    mode: InstMode,
+    operand_override: bool,
+    address_override: bool,
+    rex_w: bool,
+) -> Option<Opcode_Table_Result> {
+    let x = (opcode, mode, operand_override, address_override, rex_w);
+    match x {
+        (0x00, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADD),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x01, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADD),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x02, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADD),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x03, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADD),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x04, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADD),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x05, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADD),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x06, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [(Some(Opcode_Operand::REGISTER(ES))), None, None, None],
+        }),
+        (0x07, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [(Some(Opcode_Operand::REGISTER(ES))), None, None, None],
+        }),
+        (0x08, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x09, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x0a, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x0b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x0c, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OR),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x0d, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OR),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x0e, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [(Some(Opcode_Operand::REGISTER(ES))), None, None, None],
+        }),
+        (0x10, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADC),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x11, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADC),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x12, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADC),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x13, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADC),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x14, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x15, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ADC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x16, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [(Some(Opcode_Operand::REGISTER(SS))), None, None, None],
+        }),
+        (0x17, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [(Some(Opcode_Operand::REGISTER(SS))), None, None, None],
+        }),
+        (0x18, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SBB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x19, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SBB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x1a, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SBB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x1b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SBB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x1c, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SBB),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x1d, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SBB),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x1e, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [(Some(Opcode_Operand::REGISTER(DS))), None, None, None],
+        }),
+        (0x1f, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [(Some(Opcode_Operand::REGISTER(DS))), None, None, None],
+        }),
+        (0x20, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AND),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x21, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AND),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x22, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AND),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x23, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AND),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x24, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AND),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x25, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AND),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x27, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DAA),
+            operands: [None, None, None, None],
+        }),
+        (0x28, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SUB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x29, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SUB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x2a, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SUB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x2b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SUB),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x2c, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SUB),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x2d, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SUB),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x2f, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DAS),
+            operands: [None, None, None, None],
+        }),
+        (0x30, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XOR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x31, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XOR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x32, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XOR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x33, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XOR),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x34, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XOR),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x35, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XOR),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x37, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AAA),
+            operands: [None, None, None, None],
+        }),
+        (0x38, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMP),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x39, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMP),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x3a, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMP),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x3b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMP),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x3c, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0x3d, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0x3f, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AAS),
+            operands: [None, None, None, None],
+        }),
+        (0x40, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x41, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x42, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x43, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x44, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x45, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x46, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x47, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x48, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x49, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x4a, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x4b, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x4c, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x4d, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x4e, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x4f, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::DEC),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x50, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rAX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r8),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x51, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rCX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r9),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x52, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r10),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x53, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r11),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x54, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSP),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r12),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x55, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBP),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r13),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x56, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSI),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r14),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x57, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDI),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r15),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x58, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rAX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r8),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x59, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rCX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r9),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5a, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r10),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5b, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBX),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r11),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5c, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSP),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r12),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5d, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBP),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r13),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5e, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSI),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r14),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5f, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDI),
+                    Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r15),
+                )))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x50, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x51, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x52, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x53, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x54, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x55, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x56, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x57, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x58, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x59, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5a, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5b, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5c, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5d, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5e, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x5f, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POP),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x60, InstMode::x32, true, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSHA),
+            operands: [None, None, None, None],
+        }),
+        (0x60, InstMode::x32, false, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSHAD),
+            operands: [None, None, None, None],
+        }),
+        (0x61, InstMode::x32, true, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POPA),
+            operands: [None, None, None, None],
+        }),
+        (0x61, InstMode::x32, false, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POPAD),
+            operands: [None, None, None, None],
+        }),
+        (0x62, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::BOUND),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ma))),
+                None,
+                None,
+            ],
+        }),
+        (0x63, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ARPL),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gw))),
+                None,
+                None,
+            ],
+        }),
+        (0x63, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOVSXD),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x68, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x69, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IMUL),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+            ],
+        }),
+        (0x6a, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSH),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x6b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IMUL),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+            ],
+        }),
+        (0x6c, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INSB),
+            operands: [
+                (Some(Opcode_Operand::Yb)),
+                (Some(Opcode_Operand::REGISTER(DX))),
+                None,
+                None,
+            ],
+        }),
+        (0x6d, _, _, true, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INSW),
+            operands: [
+                (Some(Opcode_Operand::Yz)),
+                (Some(Opcode_Operand::REGISTER(DX))),
+                None,
+                None,
+            ],
+        }),
+        (0x6d, _, _, false, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INSD),
+            operands: [
+                (Some(Opcode_Operand::Yz)),
+                (Some(Opcode_Operand::REGISTER(DX))),
+                None,
+                None,
+            ],
+        }),
+        (0x6e, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OUTSB),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(DX))),
+                (Some(Opcode_Operand::Xb)),
+                None,
+                None,
+            ],
+        }),
+        (0x6f, _, _, true, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OUTSW),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(DX))),
+                (Some(Opcode_Operand::Xz)),
+                None,
+                None,
+            ],
+        }),
+        (0x6f, _, _, false, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OUTSD),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(DX))),
+                (Some(Opcode_Operand::Xz)),
+                None,
+                None,
+            ],
+        }),
+        (0x70, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_O),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x71, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NO),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x72, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_B_NAE_C),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x73, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NB_AE_NC),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x74, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_Z_E),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x75, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NZ_NE),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x76, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_BE_NA),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x77, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NBE_A),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x78, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_S),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x79, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NS),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x7a, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_P_PE),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x7b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NP_PO),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x7c, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_L_NGE),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x7d, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NL_GE),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x7e, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_LE_NG),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x7f, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::J_NLE_G),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x84, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::TEST),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x85, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::TEST),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x86, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x87, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x88, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                None,
+                None,
+            ],
+        }),
+        (0x89, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                None,
+                None,
+            ],
+        }),
+        (0x8a, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb))),
+                None,
+                None,
+            ],
+        }),
+        (0x8b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                None,
+                None,
+            ],
+        }),
+        (0x8c, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Sw))),
+                None,
+                None,
+            ],
+        }),
+        (0x8d, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LEA),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::M))),
+                None,
+                None,
+            ],
+        }),
+        (0x8e, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Sw))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew))),
+                None,
+                None,
+            ],
+        }),
+        (0x90, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rAX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r8),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x91, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rCX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r9),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x92, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r10),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x93, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r11),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x94, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSP),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r12),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x95, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBP),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r13),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x96, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSI),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r14),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x97, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDI),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r15),
+                )))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x90, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x91, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x92, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x93, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x94, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x95, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x96, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x97, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XCHG),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0x98, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CBW),
+            operands: [None, None, None, None],
+        }),
+        (0x98, InstMode::x64, _, _, true) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CDQE),
+            operands: [None, None, None, None],
+        }),
+        (0x98, _, false, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CWDE),
+            operands: [None, None, None, None],
+        }),
+        (0x99, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CWD),
+            operands: [None, None, None, None],
+        }),
+        (0x99, InstMode::x64, _, _, true) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CQO),
+            operands: [None, None, None, None],
+        }),
+        (0x99, _, false, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CDQ),
+            operands: [None, None, None, None],
+        }),
+        (0x9a, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::far_Call),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ap))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0x9b, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::WAIT),
+            operands: [None, None, None, None],
+        }),
+        (0x9c, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSHF),
+            operands: [None, None, None, None],
+        }),
+        (0x9c, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSHFD),
+            operands: [None, None, None, None],
+        }),
+        (0x9c, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::PUSHFQ),
+            operands: [None, None, None, None],
+        }),
+        (0x9d, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POPF),
+            operands: [None, None, None, None],
+        }),
+        (0x9d, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POPFD),
+            operands: [None, None, None, None],
+        }),
+        (0x9d, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::POPFQ),
+            operands: [None, None, None, None],
+        }),
+        (0x9e, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SAHF),
+            operands: [None, None, None, None],
+        }),
+        (0x9f, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LAHF),
+            operands: [None, None, None, None],
+        }),
+        (0xa0, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ob))),
+                None,
+                None,
+            ],
+        }),
+        (0xa1, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ov))),
+                None,
+                None,
+            ],
+        }),
+        (0xa2, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ob))),
+                (Some(Opcode_Operand::REGISTER(AL))),
+                None,
+                None,
+            ],
+        }),
+        (0xa3, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ov))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0xa4, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOVSB),
+            operands: [
+                (Some(Opcode_Operand::Yb)),
+                (Some(Opcode_Operand::Xb)),
+                None,
+                None,
+            ],
+        }),
+        (0xa5, _, _, false, true) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOVSQ),
+            operands: [
+                (Some(Opcode_Operand::Yv)),
+                (Some(Opcode_Operand::Xv)),
+                None,
+                None,
+            ],
+        }),
+        (0xa5, _, _, true, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOVSW),
+            operands: [
+                (Some(Opcode_Operand::Yv)),
+                (Some(Opcode_Operand::Xv)),
+                None,
+                None,
+            ],
+        }),
+        (0xa5, _, _, false, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOVSD),
+            operands: [
+                (Some(Opcode_Operand::Yv)),
+                (Some(Opcode_Operand::Xv)),
+                None,
+                None,
+            ],
+        }),
+        (0xa6, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMPSB),
+            operands: [
+                (Some(Opcode_Operand::Xb)),
+                (Some(Opcode_Operand::Yb)),
+                None,
+                None,
+            ],
+        }),
+        (0xa7, InstMode::x64, _, _, true) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMPSQ),
+            operands: [
+                (Some(Opcode_Operand::Xv)),
+                (Some(Opcode_Operand::Yv)),
+                None,
+                None,
+            ],
+        }),
+        (0xa7, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMPSD),
+            operands: [
+                (Some(Opcode_Operand::Xv)),
+                (Some(Opcode_Operand::Yv)),
+                None,
+                None,
+            ],
+        }),
+        (0xa7, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMPSW),
+            operands: [
+                (Some(Opcode_Operand::Xv)),
+                (Some(Opcode_Operand::Yv)),
+                None,
+                None,
+            ],
+        }),
+        (0xa8, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::TEST),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xa9, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::TEST),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz))),
+                None,
+                None,
+            ],
+        }),
+        (0xaa, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::STOSB),
+            operands: [
+                (Some(Opcode_Operand::Yb)),
+                (Some(Opcode_Operand::REGISTER(AL))),
+                None,
+                None,
+            ],
+        }),
+
+        (0xab, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::STOS),
+            operands: [
+                (Some(Opcode_Operand::Yv)),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                None,
+                None,
+            ],
+        }),
+        (0xac, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LODSB),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::Xb)),
+                None,
+                None,
+            ],
+        }),
+        (0xad, InstMode::x64, _, _, true) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LODSQ),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xad, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LODSW),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::Xv)),
+                None,
+                None,
+            ],
+        }),
+        (0xad, _, false, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LODSD),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::Xv)),
+                None,
+                None,
+            ],
+        }),
+        (0xae, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SCASB),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::Yb)),
+                None,
+                None,
+            ],
+        }),
+        (0xaf, InstMode::x64, _, _, true) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SCASQ),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::Yv)),
+                None,
+                None,
+            ],
+        }),
+        (0xaf, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SCASW),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::Yv)),
+                None,
+                None,
+            ],
+        }),
+        (0xaf, _, false, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::SCASD),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX))),
+                (Some(Opcode_Operand::Yv)),
+                None,
+                None,
+            ],
+        }),
+        (0xb0, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(AL),
+                    Register_Known_Or_Unsized::KNOWN(R8L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb1, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(CL),
+                    Register_Known_Or_Unsized::KNOWN(R9L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb2, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(DL),
+                    Register_Known_Or_Unsized::KNOWN(R10L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb3, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(BL),
+                    Register_Known_Or_Unsized::KNOWN(R11L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb4, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(AH),
+                    Register_Known_Or_Unsized::KNOWN(R12L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb5, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(CH),
+                    Register_Known_Or_Unsized::KNOWN(R13L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb6, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(DH),
+                    Register_Known_Or_Unsized::KNOWN(R14L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb7, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::KNOWN(BH),
+                    Register_Known_Or_Unsized::KNOWN(R15L),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb0, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb1, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(CL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb2, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(DL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb3, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(BL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb4, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AH))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb5, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(CH))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb6, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(DH))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb7, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(BH))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xb8, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rAX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r8),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xb9, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rCX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r9),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xba, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r10),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbb, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBX),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r11),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbc, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSP),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r12),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbd, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBP),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r13),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbe, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSI),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r14),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbf, InstMode::x64, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_REX_PAIR((
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDI),
+                    Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r15),
+                )))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xb8, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xb9, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xba, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbb, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbc, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbd, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbe, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xbf, InstMode::x32, _, _, false) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::MOV),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv))),
+                None,
+                None,
+            ],
+        }),
+        (0xc2, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::near_Ret),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xc3, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::near_Ret),
+            operands: [None, None, None, None],
+        }),
+        (0xc4, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LES),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gz))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp))),
+                None,
+                None,
+            ],
+        }),
+        (0xc5, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LDS),
+            operands: [
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gz))),
+                (Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp))),
+                None,
+                None,
+            ],
+        }),
+        (0xc8, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::ENTER),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xc9, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LEAVE),
+            operands: [None, None, None, None],
+        }),
+        (0xca, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::far_Ret),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xcb, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::far_Ret),
+            operands: [None, None, None, None],
+        }),
+        (0xcc, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INT3),
+            operands: [None, None, None, None],
+        }),
+        (0xcd, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INT),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xce, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INTO),
+            operands: [None, None, None, None],
+        }),
+        (0xcf, InstMode::x64, _, _, true) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IRETQ),
+            operands: [None, None, None, None],
+        }),
+        (0xcf, _, true, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IRET),
+            operands: [None, None, None, None],
+        }),
+        (0xcf, _, false, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IRETD),
+            operands: [None, None, None, None],
+        }),
+        (0xd4, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AAM),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xd5, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::AAD),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xd7, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::XLATB),
+            operands: [None, None, None, None],
+        }),
+        (0xe0, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LOOPNZ),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xe1, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LOOPZ),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xe2, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::LOOP),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xe3, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::JrCXZ),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xe4, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IN),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xe5, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IN),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                None,
+                None,
+            ],
+        }),
+        (0xe6, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OUT),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                (Some(Opcode_Operand::REGISTER(AL))),
+                None,
+                None,
+            ],
+        }),
+        (0xe7, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OUT),
+            operands: [
+                (Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                None,
+                None,
+            ],
+        }),
+        (0xe8, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::near_Call),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xe9, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::near_Jmp),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xea, InstMode::x32, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::far_Jmp),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ap))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xeb, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::short_Jmp),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xec, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IN),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(AL))),
+                (Some(Opcode_Operand::REGISTER(DX))),
+                None,
+                None,
+            ],
+        }),
+        (0xed, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::IN),
+            operands: [
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                (Some(Opcode_Operand::REGISTER(DX))),
+                None,
+                None,
+            ],
+        }),
+        (0xee, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OUT),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(DX))),
+                (Some(Opcode_Operand::REGISTER(AL))),
+                None,
+                None,
+            ],
+        }),
+        (0xef, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::OUT),
+            operands: [
+                (Some(Opcode_Operand::REGISTER(DX))),
+                (Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX))),
+                None,
+                None,
+            ],
+        }),
+        (0xf1, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::INT1),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xf4, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::HLT),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xf5, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CMC),
+            operands: [
+                (Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb))),
+                None,
+                None,
+                None,
+            ],
+        }),
+        (0xf8, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CLC),
+            operands: [None, None, None, None],
+        }),
+        (0xf9, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::STC),
+            operands: [None, None, None, None],
+        }),
+        (0xfa, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CLI),
+            operands: [None, None, None, None],
+        }),
+        (0xfb, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::STI),
+            operands: [None, None, None, None],
+        }),
+        (0xfc, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::CLD),
+            operands: [None, None, None, None],
+        }),
+        (0xfd, _, _, _, _) => Some(Opcode_Table_Result {
+            instruction: (Instruction_Name::STD),
+            operands: [None, None, None, None],
+        }),
+        _ => None,
+    }
+}
+
+// // TODO: the modrm byte might be needed to force operations which "can only operate on memory".
+// // Anything with an M operand can only operate on memory
+// declare_table!(search_opcode_one_byte,
+//     (0x00, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x01, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x02, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x03, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x04, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x05, _,             _, _, _,     Instruction_Name::ADD,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x06, InstMode::x32, _, _, false, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(ES)),                            None,                                                       None, None),
+//     (0x07, InstMode::x32, _, _, false, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER(ES)),                            None,                                                       None, None),
+// 
+//     (0x08, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x09, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x0a, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x0b, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x0c, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x0d, _,             _, _, _,     Instruction_Name::OR,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x0e, InstMode::x32, _, _, false, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(ES)),                            None,                                                       None, None),
+// 
+// 
+//     (0x10, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x11, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x12, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x13, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x14, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x15, _,             _, _, _,     Instruction_Name::ADC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x16, InstMode::x32, _, _, false, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(SS)),                            None,                                                       None, None),
+//     (0x17, InstMode::x32, _, _, false, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER(SS)),                            None,                                                       None, None),
+// 
+//     (0x18, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x19, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x1a, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x1b, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x1c, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x1d, _,             _, _, _,     Instruction_Name::SBB,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x1e, InstMode::x32, _, _, _,     Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER(DS)),                            None,                                                       None, None),
+//     (0x1f, InstMode::x32, _, _, false, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER(DS)),                            None,                                                       None, None),
+// 
+// 
+//     (0x20, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x21, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x22, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x23, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x24, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x25, _,             _, _, _,     Instruction_Name::AND,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x27, InstMode::x32, _, _, false, Instruction_Name::DAA,  None,                                                          None,                                                       None, None),
+// 
+//     (0x28, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x29, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x2a, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x2b, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x2c, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x2d, _,             _, _, _,     Instruction_Name::SUB,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x2f, InstMode::x32, _, _, false, Instruction_Name::DAS,  None,                                                          None,                                                       None, None),
+// 
+// 
+//     (0x30, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x31, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x32, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x33, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x34, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x35, _,             _, _, _,     Instruction_Name::XOR,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x37, InstMode::x32, _, _, false, Instruction_Name::AAA,  None,                                                          None,                                                       None, None),
+// 
+//     (0x38, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None),
+//     (0x39, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None),
+//     (0x3a, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None),
+//     (0x3b, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+//     (0x3c, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0x3d, _,             _, _, _,     Instruction_Name::CMP,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None, None),
+//     (0x3f, InstMode::x32, _, _, false, Instruction_Name::AAS,  None,                                                          None,                                                       None, None),
+// 
+// 
+//     (0x40, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None, None),
+//     (0x41, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), None, None, None),
+//     (0x42, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), None, None, None),
+//     (0x43, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), None, None, None),
+//     (0x44, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), None, None, None),
+//     (0x45, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), None, None, None),
+//     (0x46, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), None, None, None),
+//     (0x47, InstMode::x32, _, _, false, Instruction_Name::INC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), None, None, None),
+// 
+//     (0x48, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None, None),
+//     (0x49, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), None, None, None),
+//     (0x4a, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), None, None, None),
+//     (0x4b, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), None, None, None),
+//     (0x4c, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), None, None, None),
+//     (0x4d, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), None, None, None),
+//     (0x4e, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), None, None, None),
+//     (0x4f, InstMode::x32, _, _, false, Instruction_Name::DEC,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), None, None, None),
+// 
+// 
+//     (0x50, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rAX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r8)))), 
+//                                                             None, None, None),
+// 
+//     (0x51, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rCX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r9)))),
+//                                                             None, None, None),
+// 
+//     (0x52, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r10)))),
+//                                                             None, None, None),
+// 
+//     (0x53, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r11)))),
+//                                                             None, None, None),
+// 
+//     (0x54, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSP), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r12)))),
+//                                                             None, None, None),
+// 
+//     (0x55, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBP), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r13)))),
+//                                                             None, None, None),
+// 
+//     (0x56, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSI), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r14)))),
+//                                                             None, None, None),
+// 
+//     (0x57, InstMode::x64, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDI), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r15)))),
+//                                                             None, None, None),
+// 
+// 
+//     (0x58, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rAX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r8)))),
+//                                                             None, None, None),
+// 
+//     (0x59, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rCX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r9)))),
+//                                                             None, None, None),
+// 
+//     (0x5a, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r10)))),
+//                                                             None, None, None),
+// 
+//     (0x5b, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r11)))),
+//                                                             None, None, None),
+// 
+//     (0x5c, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSP), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r12)))),
+//                                                             None, None, None),
+// 
+//     (0x5d, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rBP), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r13)))),
+//                                                             None, None, None),
+// 
+//     (0x5e, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rSI), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r14)))),
+//                                                             None, None, None),
+// 
+//     (0x5f, InstMode::x64, _, _, _, Instruction_Name::POP,  Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::rDI), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED_d64(Register_Unsized::r15)))),
+//                                                             None, None, None),
+// 
+// 
+//     (0x50, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)),  None,  None, None),
+//     (0x51, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)),  None,  None, None),
+//     (0x52, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)),  None,  None, None),
+//     (0x53, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)),  None,  None, None),
+//     (0x54, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)),  None,  None, None),
+//     (0x55, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)),  None,  None, None),
+//     (0x56, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)),  None,  None, None),
+//     (0x57, InstMode::x32, _, _, false, Instruction_Name::PUSH,  Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)),  None,  None, None),
+// 
+//     (0x58, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)),  None,  None, None),
+//     (0x59, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)),  None,  None, None),
+//     (0x5a, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)),  None,  None, None),
+//     (0x5b, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)),  None,  None, None),
+//     (0x5c, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)),  None,  None, None),
+//     (0x5d, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)),  None,  None, None),
+//     (0x5e, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)),  None,  None, None),
+//     (0x5f, InstMode::x32, _, _, false, Instruction_Name::POP,   Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)),  None,  None, None),
+// 
+// 
+//     (0x60, InstMode::x32, true,  _, false, Instruction_Name::PUSHA,  None,                                                        None,                                                       None, None),
+//     (0x60, InstMode::x32, false, _, false, Instruction_Name::PUSHAD, None,                                                        None,                                                       None, None),
+//     (0x61, InstMode::x32, true,  _, false, Instruction_Name::POPA,   None,                                                        None,                                                       None, None),
+//     (0x61, InstMode::x32, false, _, false, Instruction_Name::POPAD,  None,                                                        None,                                                       None, None),
+//     (0x62, InstMode::x32, _,     _, false, Instruction_Name::BOUND,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ma)), None, None),
+//     (0x63, InstMode::x32, _,     _, false, Instruction_Name::ARPL,   Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gw)), None, None),
+//     (0x63, InstMode::x64, _,     _, _,     Instruction_Name::MOVSXD, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None),
+// 
+//     (0x68, _, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)),    None,                                                       None,                                                    None),
+//     (0x69, _, _, _, _, Instruction_Name::IMUL, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None),
+//     (0x6a, _, _, _, _, Instruction_Name::PUSH, Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None,                                                       None,                                                    None),
+//     (0x6b, _, _, _, _, Instruction_Name::IMUL, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None),
+// 
+//     (0x6c, _, _, _,     _, Instruction_Name::INSB,  Some(Opcode_Operand::Yb), Some(Opcode_Operand::REGISTER(DX)), None, None),
+//     (0x6d, _, _, true,  _, Instruction_Name::INSW,  Some(Opcode_Operand::Yz), Some(Opcode_Operand::REGISTER(DX)), None, None),
+//     (0x6d, _, _, false, _, Instruction_Name::INSD,  Some(Opcode_Operand::Yz), Some(Opcode_Operand::REGISTER(DX)), None, None),
+// 
+//     (0x6e, _, _, _,     _, Instruction_Name::OUTSB, Some(Opcode_Operand::REGISTER(DX)), Some(Opcode_Operand::Xb), None, None),
+//     (0x6f, _, _, true,  _, Instruction_Name::OUTSW, Some(Opcode_Operand::REGISTER(DX)), Some(Opcode_Operand::Xz), None, None),
+//     (0x6f, _, _, false, _, Instruction_Name::OUTSD, Some(Opcode_Operand::REGISTER(DX)), Some(Opcode_Operand::Xz), None, None),
+// 
+// 
+//     (0x70, _, _, _, _, Instruction_Name::J_O,        Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x71, _, _, _, _, Instruction_Name::J_NO,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x72, _, _, _, _, Instruction_Name::J_B_NAE_C,  Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x73, _, _, _, _, Instruction_Name::J_NB_AE_NC, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x74, _, _, _, _, Instruction_Name::J_Z_E,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x75, _, _, _, _, Instruction_Name::J_NZ_NE,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x76, _, _, _, _, Instruction_Name::J_BE_NA,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x77, _, _, _, _, Instruction_Name::J_NBE_A,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+// 
+//     (0x78, _, _, _, _, Instruction_Name::J_S,        Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x79, _, _, _, _, Instruction_Name::J_NS,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x7a, _, _, _, _, Instruction_Name::J_P_PE,     Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x7b, _, _, _, _, Instruction_Name::J_NP_PO,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x7c, _, _, _, _, Instruction_Name::J_L_NGE,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x7d, _, _, _, _, Instruction_Name::J_NL_GE,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x7e, _, _, _, _, Instruction_Name::J_LE_NG,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+//     (0x7f, _, _, _, _, Instruction_Name::J_NLE_G,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),  None,  None, None),
+// 
+// 
+//     (0x84, _, _, _, _, Instruction_Name::TEST, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  None, None),
+//     (0x85, _, _, _, _, Instruction_Name::TEST, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  None, None),
+//     (0x86, _, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  None, None),
+//     (0x87, _, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  None, None),
+// 
+//     (0x88, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  None, None),
+//     (0x89, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  None, None),
+//     (0x8a, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)),  None, None),
+//     (0x8b, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  None, None),
+//     (0x8c, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Sw)),  None, None),
+//     (0x8d, _, _, _, _, Instruction_Name::LEA,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::M)) ,  None, None),
+//     (0x8e, _, _, _, _, Instruction_Name::MOV,  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Sw)),  Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)),  None, None),
+// 
+// 
+//     (0x90, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rAX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r8)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x91, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rCX), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r9)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x92, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDX), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r10)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x93, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBX), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r11)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x94, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSP), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r12)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x95, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBP), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r13)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x96, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSI), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r14)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x97, InstMode::x64, _, _, _, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDI), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r15)))),
+//                                                             Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x90, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0x91, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0x92, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0x93, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0x94, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0x95, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0x96, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0x97, InstMode::x32, _, _, false, Instruction_Name::XCHG, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0x98, _,             true,  _,    _,    Instruction_Name::CBW,      None, None, None, None),
+//     (0x98, _,             false, _,    _,    Instruction_Name::CWDE,     None, None, None, None),
+//     (0x98, InstMode::x64, _,     _,    true, Instruction_Name::CDQE,     None, None, None, None),
+// 
+//     (0x99, _,             true,  _,    _,    Instruction_Name::CWD,      None, None, None, None),
+//     (0x99, _,             false, _,    _,    Instruction_Name::CDQ,      None, None, None, None),
+//     (0x99, InstMode::x64, _,     _,    true, Instruction_Name::CQO,      None, None, None, None),
+// 
+//     (0x9a, InstMode::x32, _,     _,    _,    Instruction_Name::far_Call, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ap)),  None, None, None),
+//     (0x9b, _,             _,     _,    _,    Instruction_Name::WAIT,     None,                                                     None, None, None),
+// 
+//     (0x9c, _,             true, _,     _,    Instruction_Name::PUSHF,    None,  None,  None, None),
+//     (0x9c, InstMode::x32, _,    _,     _,    Instruction_Name::PUSHFD,   None,  None,  None, None),
+//     (0x9c, InstMode::x64, _,    _,     _,    Instruction_Name::PUSHFQ,   None,  None,  None, None),
+// 
+//     (0x9d, _,             true, _,     _,    Instruction_Name::POPF,     None,  None,  None, None),
+//     (0x9d, InstMode::x32, _,    _,     _,    Instruction_Name::POPFD,    None,  None,  None, None),
+//     (0x9d, InstMode::x64, _,    _,     _,    Instruction_Name::POPFQ,    None,  None,  None, None),
+// 
+//     (0x9e, _,             _,    _,     _,    Instruction_Name::SAHF,     None,  None,  None, None),
+//     (0x9f, _,             _,    _,     _,    Instruction_Name::LAHF,     None,  None,  None, None),
+// 
+//     (0xa0, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ob)),       None, None),
+//     (0xa1, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ov)),       None, None),
+//     (0xa2, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ob)),       Some(Opcode_Operand::REGISTER(AL)),                            None, None),
+//     (0xa3, _,             _,    _,     _,    Instruction_Name::MOV,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ov)),       Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0xa4, _,             _,    _,     _,    Instruction_Name::MOVSB,    Some(Opcode_Operand::Yb),                                      Some(Opcode_Operand::Xb),                                      None, None),
+//     (0xa5, _,             _,    false, true, Instruction_Name::MOVSQ,    Some(Opcode_Operand::Yv),                                      Some(Opcode_Operand::Xv),                                      None, None),
+//     (0xa5, _,             _,    true,  _,    Instruction_Name::MOVSW,    Some(Opcode_Operand::Yv),                                      Some(Opcode_Operand::Xv),                                      None, None),
+//     (0xa5, _,             _,    false, _,    Instruction_Name::MOVSD,    Some(Opcode_Operand::Yv),                                      Some(Opcode_Operand::Xv),                                      None, None),
+// 
+//     (0xa6, _,             _,    _,     _,    Instruction_Name::CMPSB,    Some(Opcode_Operand::Xb), Some(Opcode_Operand::Yb), None, None),
+//     (0xa7, _,             _,    _,     _,    Instruction_Name::CMPSW,    Some(Opcode_Operand::Xv), Some(Opcode_Operand::Yv), None, None),
+//     (0xa7, _,             _,    _,     _,    Instruction_Name::CMPSD,    Some(Opcode_Operand::Xv), Some(Opcode_Operand::Yv), None, None),
+//     (0xa7, InstMode::x64, _,    _,     true, Instruction_Name::CMPSQ,    Some(Opcode_Operand::Xv), Some(Opcode_Operand::Yv), None, None),
+// 
+//     (0xa8, _,             _,    _,     _,    Instruction_Name::TEST,     Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xa9, _,             _,    _,     _,    Instruction_Name::TEST,     Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iz)), None, None),
+// 
+//     (0xaa, _,             _,     _, _,       Instruction_Name::STOSB,    Some(Opcode_Operand::Yb),                                Some(Opcode_Operand::REGISTER(AL)),                            None, None),
+//     (0xab, _,             true,  _, _,       Instruction_Name::STOSW,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0xab, _,             false, _, _,       Instruction_Name::STOSD,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+//     (0xab, InstMode::x64, _,     _, true,    Instruction_Name::STOSQ,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)), Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), None, None),
+// 
+//     (0xac, _,              _,     _, _,      Instruction_Name::LODSB,    Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::Xb), None, None),
+//     (0xad, _,              true,  _, _,      Instruction_Name::LODSW,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::Xv), None, None),
+//     (0xad, _,              false, _, _,      Instruction_Name::LODSD,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)), Some(Opcode_Operand::Xv), None, None),
+//     (0xad, InstMode::x64,  _,     _, true,   Instruction_Name::LODSQ,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                     None, None),
+// 
+//     (0xae, _,            _,       _, _,      Instruction_Name::SCASB,    Some(Opcode_Operand::REGISTER(AL)),                             Some(Opcode_Operand::Yb), None, None),
+//     (0xaf, _,            true,    _, _,      Instruction_Name::SCASW,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)),  Some(Opcode_Operand::Yv), None, None),
+//     (0xaf, _,            false,   _, _,      Instruction_Name::SCASD,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)),  Some(Opcode_Operand::Yv), None, None),
+//     (0xaf, InstMode::x64, _,      _, true,   Instruction_Name::SCASQ,    Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::rAX)),  Some(Opcode_Operand::Yv), None, None),
+// 
+// 
+//     (0xb0, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(AL), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R8L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb1, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(CL), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R9L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb2, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(DL), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R10L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb3, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(BL), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R11L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb4, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(AH), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R12L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb5, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(CH), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R13L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb6, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(DH), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R14L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb7, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::KNOWN(BH), 
+//                                                                                                         Register_Known_Or_Unsized::KNOWN(R15L)))),
+//                                                                 Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb0, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(AL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xb1, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(CL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xb2, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(DL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xb3, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(BL)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xb4, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(AH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xb5, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(CH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xb6, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(DH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+//     (0xb7, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER(BH)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None, None),
+// 
+//     (0xb8, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rAX), 
+//                                                                                                     Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r8)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xb9, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rCX), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r9)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xba, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDX), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r10)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xbb, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBX), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r11)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xbc, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSP), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r12)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xbd, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rBP), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r13)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xbe, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rSI), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r14)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xbf, InstMode::x64, _, _, _, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_REX_PAIR((Register_Known_Or_Unsized::UNSIZED(Register_Unsized::rDI), 
+//                                                                                                      Register_Known_Or_Unsized::UNSIZED(Register_Unsized::r15)))),
+//                                                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     (0xb8, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+//     (0xb9, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eCX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+//     (0xba, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+//     (0xbb, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+//     (0xbc, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSP)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+//     (0xbd, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eBP)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+//     (0xbe, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eSI)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+//     (0xbf, InstMode::x32, _, _, false, Instruction_Name::MOV, Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eDI)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iv)), None, None),
+// 
+//     // TODO: VEX prefix for LES and LDS
+//     (0xc2, _,             _,     _, _,    Instruction_Name::near_Ret, Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw)),    None,                                                       None, None),
+//     (0xc3, _,             _,     _, _,    Instruction_Name::near_Ret, None,                                                       None,                                                       None, None),
+//     (0xc4, InstMode::x32, _,     _, _,    Instruction_Name::LES,      Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gz)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp)), None, None),
+//     (0xc5, InstMode::x32, _,     _, _,    Instruction_Name::LDS,      Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gz)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp)), None, None),
+// 
+//     (0xc8, _,             _,     _, _,    Instruction_Name::ENTER,    Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw)),    Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None, None),
+//     (0xc9, _,             _,     _, _,    Instruction_Name::LEAVE,    None,                                                       None,                                                       None, None),
+//     (0xca, _,             _,     _, _,    Instruction_Name::far_Ret,  Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Iw)),    None,                                                       None, None),
+//     (0xcb, _,             _,     _, _,    Instruction_Name::far_Ret,  None,                                                       None,                                                       None, None),
+//     (0xcc, _,             _,     _, _,    Instruction_Name::INT3,     None,                                                       None,                                                       None, None),
+//     (0xcd, _,             _,     _, _,    Instruction_Name::INT,      Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),    None,                                                       None, None),
+//     (0xce, InstMode::x32, _,     _, _,    Instruction_Name::INTO,     None,                                                       None,                                                       None, None),
+//     (0xcf, _,             true,  _, _,    Instruction_Name::IRET,     None,                                                       None,                                                       None, None),
+//     (0xcf, _,             false, _, _,    Instruction_Name::IRETD,    None,                                                       None,                                                       None, None),
+//     (0xcf, InstMode::x64, _,     _, true, Instruction_Name::IRETQ,    None,                                                       None,                                                       None, None),
+// 
+//     (0xd4, InstMode::x32, _,     _, _,    Instruction_Name::AAM,      Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),     None,                               None, None),
+//     (0xd5, InstMode::x32, _,     _, _,    Instruction_Name::AAD,      Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),     None,                               None, None),
+//     (0xd7, _,             _,     _, _,    Instruction_Name::XLATB,    None,                                                        None,                               None, None),
+//     // XLAT has parameters?
+// 
+//     (0xe0, _,             _, _, _, Instruction_Name::LOOPNZ,    Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+//     (0xe1, _,             _, _, _, Instruction_Name::LOOPZ,     Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+//     (0xe2, _,             _, _, _, Instruction_Name::LOOP,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+//     (0xe3, _,             _, _, _, Instruction_Name::JrCXZ,     Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+//     (0xe4, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       None, None),
+//     (0xe5, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       None, None),
+//     (0xe6, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       Some(Opcode_Operand::REGISTER(AL)),                            None, None),
+//     (0xe7, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)),       Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None),
+// 
+//     (0xe8, _,             _, _, _, Instruction_Name::near_Call, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)),       None,                                                          None, None),
+//     (0xe9, _,             _, _, _, Instruction_Name::near_Jmp,  Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)),       None,                                                          None, None),
+//     (0xea, InstMode::x32, _, _, _, Instruction_Name::far_Jmp,   Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Ap)),       None,                                                          None, None),
+//     (0xeb, _,             _, _, _, Instruction_Name::short_Jmp, Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+//     (0xec, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER(AL)),                            Some(Opcode_Operand::REGISTER(DX)),                            None, None),
+//     (0xed, _,             _, _, _, Instruction_Name::IN,        Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), Some(Opcode_Operand::REGISTER(DX)),                            None, None),
+//     (0xee, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::REGISTER(DX)),                            Some(Opcode_Operand::REGISTER(AL)),                            None, None),
+//     (0xef, _,             _, _, _, Instruction_Name::OUT,       Some(Opcode_Operand::REGISTER(DX)),                            Some(Opcode_Operand::REGISTER_UNSIZED(Register_Unsized::eAX)), None, None),
+// 
+// 
+//     (0xf1, _,             _, _, _, Instruction_Name::INT1,      Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+//     (0xf4, _,             _, _, _, Instruction_Name::HLT,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+//     (0xf5, _,             _, _, _, Instruction_Name::CMC,       Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jb)),       None,                                                          None, None),
+// 
+//     (0xf8, _,             _, _, _, Instruction_Name::CLC,       None,                                                          None,                                                          None, None),
+//     (0xf9, _,             _, _, _, Instruction_Name::STC,       None,                                                          None,                                                          None, None),
+//     (0xfa, _,             _, _, _, Instruction_Name::CLI,       None,                                                          None,                                                          None, None),
+//     (0xfb, _,             _, _, _, Instruction_Name::STI,       None,                                                          None,                                                          None, None),
+//     (0xfc, _,             _, _, _, Instruction_Name::CLD,       None,                                                          None,                                                          None, None),
+//     (0xfd, _,             _, _, _, Instruction_Name::STD,       None,                                                          None,                                                          None, None),
+// );
+
+pub fn search_opcode_two_byte(opcode: u8, mode: InstMode, prefix: &Inst_Prefix) -> Option<Opcode_Table_Result>
 {
-    let x = (opcode, mode, prefix, modrm);
+    let x = (opcode, mode, prefix);
     match x
     {
-        (0x02, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LAR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
-        (0x03, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LSL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
-        (0x05, InstMode::x64, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSCALL, operands: [None, None, None, None]}),
-        (0x06, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CLTS, operands: [None, None, None, None]}),
-        (0x07, InstMode::x64, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSRET, operands: [None, None, None, None]}),
+        // (0x02, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LAR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
+        // (0x03, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LSL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
+        (0x05, InstMode::x64, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSCALL, operands: [None, None, None, None]}),
+        // (0x06, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CLTS, operands: [None, None, None, None]}),
+        // (0x07, InstMode::x64, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSRET, operands: [None, None, None, None]}),
 
-        (0x08, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::INVD, operands: [None, None, None, None]}),
-        (0x09, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::WBINVD, operands: [None, None, None, None]}),
-        (0x09, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::PRE_FETCH_W, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None, None]}),
-
-
-        (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
-        (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
-        (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), 
-                                                                                            None, None]}),
-        (0x10, _, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), 
-                                                                                            None, None]}),
+        // (0x08, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::INVD, operands: [None, None, None, None]}),
+        // (0x09, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::WBINVD, operands: [None, None, None, None]}),
+        // (0x0D, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::PRE_FETCH_W, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None, None]}),
 
 
-        (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), Some(Opcode_Operand::Hx), 
-                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), None]}),
-        (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), Some(Opcode_Operand::Hx), 
-                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), None]}),
-        (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), 
-                                                                                            None, None]}),
-        (0x11, _, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), 
-                                                                                            None, None]}),
-
-        // TODO: 0x12
-
-        (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-            None,
-
-        (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-            None,
-
-        (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-                                                                                            None, None]}),
-        (0x13, _, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-                                                                                            None, None]}),
+        // (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        // (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        // (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), 
+        //                                                                                     None, None]}),
+        // (0x10, _, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), 
+        //                                                                                     None, None]}),
 
 
-        (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-            None,
+        // (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), Some(Opcode_Operand::Hx), 
+        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), None]}),
+        // (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), Some(Opcode_Operand::Hx), 
+        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), None]}),
+        // (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), 
+        //                                                                                     None, None]}),
+        // (0x11, _, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), 
+        //                                                                                     None, None]}),
 
-        (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-            None,
+        // // TODO: 0x12
 
-        (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
-                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
-        (0x14, _, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        // (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
+        //     None,
+
+        // (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
+        //     None,
+
+        // (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+        //                                                                                     None, None]}),
+        // (0x13, _, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+        //                                                                                     None, None]}),
 
 
-        (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-            None,
+        // (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
+        //     None,
 
-        (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-            None,
+        // (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
+        //     None,
 
-        (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
-                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
-        (0x15, _, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
-         // TODO: 0x16
+        // (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
+        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        // (0x14, _, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
 
-        (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-            None,
 
-        (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-            None,
+        // (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
+        //     None,
 
-        (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-                                                                                            None, None]}),
-        (0x17, _, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-                                                                                            None, None]}),
+        // (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
+        //     None,
+
+        // (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
+        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        // (0x15, _, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        //  // TODO: 0x16
+
+        // (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
+        //     None,
+
+        // (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
+        //     None,
+
+        // (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+        //                                                                                     None, None]}),
+        // (0x17, _, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+        //                                                                                     None, None]}),
 
         _ => None
     }
