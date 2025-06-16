@@ -8,7 +8,7 @@ pub enum InstMode
     x32,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum Instruction_Name
 {
@@ -68,6 +68,40 @@ pub enum Instruction_Name
     J_NL_GE,
     J_LE_NG,
     J_NLE_G,
+    J_CC_O,
+    J_CC_NO,
+    J_CC_B_CNAE,
+    J_CC_AE_NB_NC,
+    J_CC_E_Z,
+    J_CC_NE_NZ,
+    J_CC_BE_NA,
+    J_CC_A_NBE,
+    J_CC_S,
+    J_CC_NS,
+    J_CC_P_PE,
+    J_CC_NP_PO,
+    J_CC_L_NGE,
+    J_CC_NL_GE,
+    J_CC_LE_NA,
+    J_CC_NLE_G,
+    JMPE,
+
+    SET_CC_O,
+    SET_CC_NO,
+    SET_CC_B_CNAE,
+    SET_CC_AE_NB_NC,
+    SET_CC_E_Z,
+    SET_CC_NE_NZ,
+    SET_CC_BE_NA,
+    SET_CC_A_NBE,
+    SET_CC_S,
+    SET_CC_NS,
+    SET_CC_P_PE,
+    SET_CC_NP_PO,
+    SET_CC_L_NGE,
+    SET_CC_NL_GE,
+    SET_CC_LE_NA,
+    SET_CC_NLE_G,
 
     XCHG,
     MOV,
@@ -88,17 +122,20 @@ pub enum Instruction_Name
     PUSHF, PUSHFD, PUSHFQ,
     POPF, POPFD, POPFQ,
     WAIT,
+    
+    POPCNT, TZCNT, LZCNT,
 
     SAHF, LAHF,
 
-    MOVSW, MOVSD, MOVSB, MOVSQ,
+    MOVSW, MOVSD, MOVSB, MOVSQ, MOV_DQ, MOV_Q, MOVDQ, MOVQ, MOVZX, MOVSX, MOV_NTL,
     CMPSB, CMPSW, CMPSD, CMPSQ,
 
     STOS, STOSB, STOSW, STOSD, STOSQ,
     LODSB, LODSW, LODSD, LODSQ,
     SCASB, SCASW, SCASD, SCASQ,
 
-    LES, LDS,
+    LES, LDS, LAR, LSL,
+    CMPXCHG, LSS, BTR, LFS, LGS,
 
     ENTER, READ, LEAVE,
     INT, INT1, INT3,
@@ -113,23 +150,73 @@ pub enum Instruction_Name
 
     HLT, CMC,
 
-    CLC, STC, CLI, STI, CLD, STD,
+    CLC, STC, CLI, STI, CLD, STD, CLTS,
 
     ROL, ROR, RCL, RCR, SHL, SHR, SAR,
     // XABORT, XBEGIN,
 
-    // LAR, LSL,
-    SYSCALL, // SYSRET,
-    // CLTS, 
+    SYSCALL, SYSRET, CPUID,
 
-    // INVD, WBINVD, PRE_FETCH_W,
+    BT, SHLD, RSM, BTS, SHRD, BTC, BSF, BSR,
 
-    // V_MOV_UPS, V_MOV_UPD, V_MOV_SS, V_MOV_SD,
-    // V_MOV_DDUP, V_MOV_SLDUP, V_MOV_LPD, V_MOV_LPS,
-    // V_MOV_HPS, V_MOV_HPD,
+    INVD, WBINVD, PRE_FETCH_W,
 
-    // V_UNPACK_HPD, V_UNPACK_HPS,
-    // V_UNPACK_LPD, V_UNPACK_LPS,
+    V_MOV_UPS, V_MOV_UPD, V_MOV_SS, V_MOV_SD,
+    V_MOV_DDUP, V_MOV_SLDUP, V_MOV_LPD, V_MOV_LPS,
+    V_MOV_HPS, V_MOV_HPD, V_MOV_APD, V_MOV_APS, V_MOV_NT_PS, V_MOV_NT_PD,
+    V_MOV_MSK_PS, V_MOV_MSK_PD, V_MOV_DQ, V_MOV_DQA, V_MOV_DQU, VMOVDQ, VMOVQ,
+    VMOVDQA, VMOVDQU, V_MOV_SHDUP, MOVQ2DQ, MOVDQ2Q, PMOVMSKB, VPMOVMSKB,
+
+    V_UNPACK_HPD, V_UNPACK_HPS,
+    V_UNPACK_LPD, V_UNPACK_LPS,
+
+    V_SQRT_PS, V_SQRT_PD, V_SQRT_SS, V_SQRT_SD, V_RSQRT_PS, V_RSQRT_SS, 
+
+    V_RCP_PS, V_RCP_SS,
+
+    V_AND_PS, V_AND_PD, V_ANDN_PS, V_ANDN_PD, V_OR_PS, V_OR_PD, V_XOR_PS, V_XOR_PD, 
+    V_ADD_PS, V_ADD_PD, V_ADD_SS, V_ADD_SD, V_MUL_PS, V_MUL_PD, V_MUL_SS, V_MUL_SD,
+    VHADDPD, VHSUBPD, VHSUBPS,
+    PADDQ, VPADDQ, PMULLW, VPMULLW, 
+
+    V_SUB_PS, V_SUB_PD, V_SUB_SS, V_SUB_SD, 
+    V_MIN_PS, V_MIN_PD, V_MIN_SS, V_MIN_SD,
+    V_DIV_PS, V_DIV_PD, V_DIV_SS, V_DIV_SD,
+    V_MAX_PS, V_MAX_PD, V_MAX_SS, V_MAX_SD,
+    VADDSUBPD, VADDSUBPS, PSUBUSB, VPSUBUSB, PSUBUSW, VPSUBUSW,
+
+    V_CVT_PS2_PD, V_CVT_PD2_PS, V_CVT_SS2_SD, V_CVT_SD2_SS,
+    V_CVT_DQ2_PS, V_CVT_PS2_DQ, V_CVT_TPS2_DQ,
+
+    V_CMP_PS, V_CMP_PD, V_CMP_SS, V_CMP_SD,
+
+    PMINUB, VPMINUB, PAND, VPAND, PADDUSB, VPADDUSB, PADDUSW, VPADDUSW, PMAXUB, VPMAXUB, PANDN, VPANDN, PAVGB, VPAVGB,
+    PSRAW, VPSRAW, PSRAD, VPSRAD, PMULHUW, VPMULHUW, PMULHW, VPMULHW,
+    VCTTPD2DQ, VCVTDQ2PD, VCVTPD2DQ, MOVNTDQ, VMOVNTDQ, PSUBSB, PMINSW, VPMINSW, POR, VPOR, PADDSB, VPADDSB, PADDSW, VPADDSW,
+    PMAXSW, VPMAXSW, PXOR, VPXOR, VLDDQU, PSLLW, VPSLLW, PSLLD, VPSLLD, PSLLQ, VPSLLQ, PMULUDQ, VPMULUDQ, PMADDWD, VPMADDWD, PSADBW,
+    VPSADBW, MASKMOVQ, VMASKMOVDQU, PSUBB, VPSUBB, PSUBW, VPSUBW, PSUBD, VPSUBD, PSUBQ, VPSUBQ, PADDB, VPADDB, PADDW, VPADDW, PADDD, VPADDD,
+
+    PSHUFW, PSHUFD, VPSHUFHW, VPSSHUFLW, VSHUFPS, VSHUFPD,
+    PEXTRW, VPEXTRW,
+
+    BSWAP, 
+    
+    PSRLW, VPSRLW, PSRLD, 
+
+    PUNPCK_LBW, VPUNPCK_LBW, PUNPCK_LWD, VPUNPCK_LWD,
+    PUNPCK_LDQ, VPUNPCK_LDQ, PUNPCK_SWB, VPUNPCK_SWB,
+    PACKUSWB, VPACKUSWB, PUNPCKHBW, VPUNPCKHBW,
+    PUNPCKHWD, VPUNPCKHWD, PUNPCKHDQ, VPUNPCKHDQ,
+    PACKSSDW, VPACKSSDW, VPUNPCKLQDQ, VPUNPCKHQDQ,
+
+    PCMP_GTB, VPCMP_GTB, PCMP_GTW, VPCMP_GTW, PCMP_GTD, VPCMP_GTD,
+    PCMPEQB, PCMPEQW, PCMPEQD, 
+
+    VPCMPEQB, VPCMPEQW, VPCMPEQD,
+
+    VMREAD, VMWRITE,
+
+    XADD,
 
     FADD, FMUL, FCOM, FCOMP, FSUB, FSUBR, FDIV, FDIVR,
     FLD, FST, FSTP, FLDENV, FLDCW, FSTENV, FSTCW,
@@ -146,6 +233,18 @@ pub enum Instruction_Name
     FSAVE, FSTSW, FRSTOR, FFREE, FUCOM, FUCOMP,
     FADDP, FSUBRP, FDIVRP, FMULP, FSUBP, FDIVP,
     FCOMPP, FBSTP, FBLD, FCOMIP, FUCOMIP, FCMOVE,
+
+    CVTPI2_PS, CVTPI2_PD, V_CTSI2_SS, V_CTSI2_SD,
+    CVTT_PS_2PI, CVTT_PD_2PI, V_CVTT_SS_2SI, CVT_PS_2PI, CVT_PD_2PI, V_CVT_SS_2SI, VUCOMI_SS, VUCOMI_SD, VCOMI_SS, VCOMI_SD, 
+    WRMSR, RDTSC, RDMSR, RDPMC, SYSENTER, SYSEXIT, GETSEC,
+
+    CMOV_O, CMOV_NO, CMOV_B_C_NAE, CMOV_AE_NB_NC, CMOV_E_Z, CMOV_NE_NZ, CMOV_BE_NA, CMOV_A_NBE, CMOV_S, CMOV_NS, CMOV_P_PE, CMOV_NP_PO, CMOV_L_NGE, CMOV_NL_HE, CMOV_LE_NG, CMOV_NLE_G, 
+
+    NOP,
+    BNDLDX, BNDMOV, BNDCL, BNDCU, BNDSTX, BNDMK, BNDCN,
+
+    VPSRLD, VSRLQ, VPSRLQ,
+    PSRLQ,
 }
 
 impl std::fmt::Display for Instruction_Name {
@@ -233,11 +332,14 @@ pub enum Register_Known_Or_Unsized
 #[allow(non_camel_case_types)]
 pub enum Opcode_Operand_ModRM
 {
-    Eb, Ev, Ev_d64, Ew,
-    Gb, Gv, Gw, Gz,
-    // Hx,
-    M, Ma, Mp, //  Mq, Wx,
+    Eb, Ev, Ev_d64, Ew, Ey,
+    Gb, Gv, Gw, Gz, Gy, Gd,
+    M, Ma, Mp, Mq, Mps, Mpd, Mx, My,
+    Nq, 
     Sw,
+    Cd,
+    Dd,
+    Rd,
 
     FLOAT_Single_Real,
     FLOAT_14_28_byte,
@@ -249,15 +351,19 @@ pub enum Opcode_Operand_ModRM
     FLOAT_PACKED_BCD,
     FLOAT_QUAD_INTEGER,
 
-    // Vps, Vx, Vpd, Vss, Vsd, Vq,
-    // Wps, Wss, Wsd, Wpd,
+    Wx, Wps, Wss, Wsd, Wpd, Wq, Wdq,
+    Vx, Vss, Vsd, Vq, Vps, Vpd, Vdq, Vy,
+    Hx, Hss, Hsd, Hq, Hps, Hpd,
+    Ppi, Pq, Pd,
+    Qpi, Qd, Qq,
+    Ux, Uq, Ups, Upd, Udq,
 }
 
 #[derive(Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]
 pub enum Opcode_Operand_Dis
 {
-    Jb, Jz,
+    Jb, Jz, Jq,
     Ap,
     Ob, Ov,
 }
@@ -5515,105 +5621,914 @@ pub fn search_opcode_one_byte(
 //     (0xfd, _,             _, _, _, Instruction_Name::STD,       None,                                                          None,                                                          None, None),
 // );
 
-pub fn search_opcode_two_byte(opcode: u8, mode: InstMode, prefix: &Inst_Prefix) -> Option<Opcode_Table_Result>
+pub fn search_opcode_two_byte(opcode: u8, mode: InstMode, prefix: &Inst_Prefix, modrm: &ModRMByte, rex_w: bool) -> Option<Opcode_Table_Result>
 {
     let x = (opcode, mode, prefix);
     match x
     {
-        // (0x02, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LAR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
-        // (0x03, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LSL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
+        (0x02, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LAR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
+        (0x03, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::LSL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
         (0x05, InstMode::x64, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSCALL, operands: [None, None, None, None]}),
-        // (0x06, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CLTS, operands: [None, None, None, None]}),
-        // (0x07, InstMode::x64, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSRET, operands: [None, None, None, None]}),
+        (0x06, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CLTS, operands: [None, None, None, None]}),
+        (0x07, InstMode::x64, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSRET, operands: [None, None, None, None]}),
 
-        // (0x08, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::INVD, operands: [None, None, None, None]}),
-        // (0x09, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::WBINVD, operands: [None, None, None, None]}),
-        // (0x0D, _, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::PRE_FETCH_W, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None, None]}),
+        (0x08, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::INVD, operands: [None, None, None, None]}),
+        (0x09, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::WBINVD, operands: [None, None, None, None]}),
+        (0x0D, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::PRE_FETCH_W, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None, None]}),
 
+        (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), 
+                                                                                            None, None]}),
+        (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x10, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), 
+                                                                                            None, None]}),
 
-        // (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
-        // (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
-        // (0x10, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), 
-        //                                                                                     None, None]}),
-        // (0x10, _, _, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), 
-        //                                                                                     None, None]}),
+        (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), 
+                                                                                            None, None]}),
+        (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), Some(Opcode_Operand::Hx), 
+                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), None]}),
+        (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), Some(Opcode_Operand::Hx), 
+                                                                                           Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), None]}),
+        (0x11, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), 
+                                                                                            None, None]}),
 
-
-        // (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), Some(Opcode_Operand::Hx), 
-        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), None]}),
-        // (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), Some(Opcode_Operand::Hx), 
-        //                                                                                    Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), None]}),
-        // (0x11, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), 
-        //                                                                                     None, None]}),
-        // (0x11, _, _, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), 
-        //                                                                                     None, None]}),
-
-        // // TODO: 0x12
-
-        // (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-        //     None,
-
-        // (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-        //     None,
-
-        // (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_UPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-        //                                                                                     None, None]}),
-        // (0x13, _, _, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-        //                                                                                     None, None]}),
+        // TODO: 0x12. What is vmovhlps
+        (0x12, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_LPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hq)), 
+                                                                                            Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), None]}),
+        (0x12, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SLDUP, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), 
+                                                                                              None, None]}),
+        (0x12, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_DDUP, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), 
+                                                                                             None, None]}),
+        (0x12, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hq)), 
+                                                                                            Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), None]}),
 
 
-        // (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-        //     None,
-
-        // (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-        //     None,
-
-        // (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
-        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
-        // (0x14, _, _, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x13, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_LPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+                                                                                            None, None]}),
+        (0x13, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+                                                                                            None, None]}),
 
 
-        // (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-        //     None,
+        (0x14, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
+                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x14, _, _,) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_LPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
 
-        // (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-        //     None,
 
-        // (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
-        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
-        // (0x15, _, _, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
-        //                                                                                        Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
-        //  // TODO: 0x16
+        (0x15, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), 
+                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x15, _, _,) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_UNPACK_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::Hx), 
+                                                                                               Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
 
-        // (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }, _) => 
-        //     None,
+        // TODO: 0x16, What is vmovhlps?
+        (0x16, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vdq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hq)), 
+                                                                                            Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), None]}),
+        (0x16, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_SHDUP, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), 
+                                                                                              None, None]}),
+        (0x16, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vdq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hq)), 
+                                                                                            Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), None]}),
 
-        // (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }, _) => 
-        //     None,
 
-        // (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-        //                                                                                     None, None]}),
-        // (0x17, _, _, _) => 
-        //     Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
-        //                                                                                     None, None]}),
+        (0x17, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+                                                                                            None, None]}),
+        (0x17, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_HPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), 
+                                                                                            None, None]}),
+
+
+        (0x19, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::NOP, operands: [None, None, None, None] }),
+
+
+        (0x1A, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDMOV, operands: [None, None, None, None]}),
+        (0x1A, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDCL, operands: [None, None, None, None]}),
+        (0x1A, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDCU, operands: [None, None, None, None]}),
+        (0x1A, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDLDX, operands: [None, None, None, None]}),
+
+        (0x1B, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDMOV, operands: [None, None, None, None]}),
+        (0x1B, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDMK, operands: [None, None, None, None]}),
+        (0x1B, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDCN, operands: [None, None, None, None]}),
+        (0x1B, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BNDSTX, operands: [None, None, None, None]}),
+        
+
+        (0x1C, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::NOP, operands: [None, None, None, None] }),
+        (0x1D, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::NOP, operands: [None, None, None, None] }),
+        (0x1E, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::NOP, operands: [None, None, None, None] }),
+        (0x1F, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::NOP, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None, None] }),
+
+        (0x20, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::MOV, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Rd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Cd)), None, None]}),
+        (0x21, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::MOV, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Rd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Dd)), None, None]}),
+        (0x22, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::MOV, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Cd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Rd)), None, None]}),
+        (0x23, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::MOV, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Dd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Rd)), None, None]}),
+
+
+        (0x28, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_APD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+        (0x28, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_APS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+
+
+        (0x29, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_APD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), None, None]}),
+        (0x29, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_APS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), None, None]}),
+
+
+        (0x2A, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CVTPI2_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qpi)), None, None]}),
+        (0x2A, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CTSI2_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), None]}),
+        (0x2A, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CTSI2_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), None]}),
+        (0x2A, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CVTPI2_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qpi)), None, None]}),
+
+        (0x2B, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_NT_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), None, None]}),
+        (0x2B, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_NT_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), None, None]}),
+
+
+        (0x2C, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CVTT_PD_2PI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ppi)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+        (0x2C, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVTT_SS_2SI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None, None]}),
+        (0x2C, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVTT_SS_2SI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None, None]}),
+        (0x2C, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CVTT_PS_2PI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ppi)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+
+        (0x2D, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CVT_PD_2PI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qpi)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+        (0x2D, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_SS_2SI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None, None]}),
+        (0x2D, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_SS_2SI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None, None]}),
+        (0x2D, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CVT_PS_2PI, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ppi)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+
+        (0x2E, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VUCOMI_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None, None]}),
+        (0x2E, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VUCOMI_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None, None]}),
+
+        (0x2F, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VCOMI_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None, None]}),
+        (0x2F, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VCOMI_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None, None]}),
+
+        (0x30, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::WRMSR,    operands: [None, None, None, None] }),
+        (0x31, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::RDTSC,    operands: [None, None, None, None] }),
+        (0x32, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::RDMSR,    operands: [None, None, None, None] }),
+        (0x33, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::RDPMC,    operands: [None, None, None, None] }),
+        (0x34, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSENTER, operands: [None, None, None, None] }),
+        (0x35, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::SYSEXIT,  operands: [None, None, None, None] }),
+        (0x37, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::GETSEC,   operands: [None, None, None, None] }),
+
+        (0x40, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_O,        operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x41, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_NO,       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x42, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_B_C_NAE,  operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x43, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_AE_NB_NC, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x44, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_E_Z,      operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x45, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_NE_NZ,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x46, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_BE_NA,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x47, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_A_NBE,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x48, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_S,        operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x49, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_NS,       operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x4A, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_P_PE,     operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x4B, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_NP_PO,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x4C, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_L_NGE,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x4D, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_NL_HE,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x4E, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_LE_NG,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+        (0x4F, _, _) => Some(Opcode_Table_Result { instruction: Instruction_Name::CMOV_NLE_G,    operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None] }),
+
+        (0x50, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_MSK_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Upd)), None, None]}),
+        (0x50, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_MSK_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ups)), None, None]}),
+
+        (0x51, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SQRT_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+        (0x51, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SQRT_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x51, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SQRT_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x51, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SQRT_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+
+        (0x52, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_RSQRT_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x52, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_RSQRT_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+
+        (0x53, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_RCP_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x53, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_RCP_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+
+        (0x54, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_AND_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x54, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_AND_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x55, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_ANDN_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x55, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_ANDN_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x56, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_OR_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x56, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_OR_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x57, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_XOR_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x57, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_XOR_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x58, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_ADD_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x58, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_ADD_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x58, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_ADD_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x58, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_ADD_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x59, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MUL_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x59, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MUL_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x59, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MUL_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x59, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MUL_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x5A, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_PD2_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+        (0x5A, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_SS2_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x5A, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_SD2_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x5A, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_PS2_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+
+        (0x5B, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_PS2_DQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vdq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+        (0x5B, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_TPS2_DQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vdq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None, None]}),
+        (0x5B, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CVT_DQ2_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wdq)), None, None]}),
+
+        (0x5C, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SUB_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x5C, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SUB_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x5C, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SUB_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x5C, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_SUB_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x5D, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MIN_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x5D, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MIN_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x5D, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MIN_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x5D, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MIN_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x5E, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_DIV_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x5E, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_DIV_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x5E, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_DIV_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x5E, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_DIV_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x5F, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MAX_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x5F, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MAX_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), None]}),
+        (0x5F, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MAX_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), None]}),
+        (0x5F, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MAX_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x60, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCK_LBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x60, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUNPCK_LBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x61, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCK_LWD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x61, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUNPCK_LWD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x62, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCK_LDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x62, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUNPCK_LDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x63, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCK_SWB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x63, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUNPCK_SWB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x64, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPCMP_GTB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x64, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PCMP_GTB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x65, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPCMP_GTW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x65, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PCMP_GTW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x66, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPCMP_GTD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x66, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PCMP_GTD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x67, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPACKUSWB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x67, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PACKUSWB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x68, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCKHBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x68, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUNPCKHBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x69, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCKHWD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x69, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUNPCKHWD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x6A, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCKHDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x6A, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUNPCKHDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x6B, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPACKSSDW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x6B, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PACKSSDW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qd)), None, None]}),
+
+        (0x6C, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCKLQDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+
+        (0x6D, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPUNPCKHQDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+
+        (0x6E, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_DQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vy)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), None, None]}),
+        (0x6E, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOV_DQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), None, None]}),
+
+        (0x6F, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_DQA, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None, None]}),
+        (0x6F, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_MOV_DQU, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None, None]}),
+        (0x6F, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOV_Q, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0x70, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSHUFD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+        (0x70, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSHUFHW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+        (0x70, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSSHUFLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+        (0x70, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSHUFW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+
+        (0x74, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPCMPEQB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x74, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PCMPEQB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0x75, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPCMPEQW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x75, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PCMPEQW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0x76, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPCMPEQD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0x76, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PCMPEQD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        // TODO: wtf is 0x77?
+
+        (0x78, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMREAD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), None, None]}),
+        (0x79, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMWRITE, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), None, None]}),
+
+        (0x7C, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VHADDPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x7C, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VHADDPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x7D, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VHSUBPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0x7D, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VHSUBPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0x7E, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMOVDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vy)), None, None]}),
+        (0x7E, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMOVQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wq)), None, None]}),
+        (0x7E, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ey)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pd)), None, None]}),
+
+        (0x7F, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMOVDQA, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), None, None]}),
+        (0x7F, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMOVDQU, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), None, None]}),
+        (0x7F, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), None, None]}),
+
+        (0x80, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_O, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x81, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NO, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x82, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_B_CNAE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x83, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_AE_NB_NC, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x84, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_E_Z, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x85, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NE_NZ, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x86, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_BE_NA, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x87, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_A_NBE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x88, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_S, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x89, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NS, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x8A, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_P_PE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x8B, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NP_PO, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x8C, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_L_NGE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x8D, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NL_GE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x8E, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_LE_NA, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+        (0x8F, InstMode::x64, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NLE_G, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jq)), None, None, None]}),
+
+        (0x80, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_O, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x81, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NO, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x82, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_B_CNAE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x83, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_AE_NB_NC, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x84, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_E_Z, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x85, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NE_NZ, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x86, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_BE_NA, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x87, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_A_NBE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x88, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_S, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x89, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NS, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x8A, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_P_PE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x8B, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NP_PO, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x8C, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_L_NGE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x8D, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NL_GE, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x8E, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_LE_NA, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+        (0x8F, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::J_CC_NLE_G, operands: [Some(Opcode_Operand::DIS_BYTES(Opcode_Operand_Dis::Jz)), None, None, None]}),
+
+        (0x90, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_O, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x91, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_NO, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x92, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_B_CNAE, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x93, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_AE_NB_NC, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x94, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_E_Z, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x95, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_NE_NZ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x96, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_BE_NA, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x97, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_A_NBE, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x98, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_S, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x99, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_NS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x9A, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_P_PE, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x9B, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_NP_PO, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x9C, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_L_NGE, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x9D, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_NL_GE, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x9E, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_LE_NA, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+        (0x9F, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SET_CC_NLE_G, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None, None]}),
+
+        (0xA0, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUSH, operands: [Some(Opcode_Operand::REGISTER(FS)), None, None, None]}),
+        (0xA1, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::POP, operands: [Some(Opcode_Operand::REGISTER(FS)), None, None, None]}),
+        (0xA2, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CPUID, operands: [None, None, None, None]}),
+        (0xA3, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BT, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None]}),
+        (0xA4, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SHLD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+        (0xA5, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SHLD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::REGISTER(CL)), None]}),
+
+        (0xA8, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PUSH, operands: [Some(Opcode_Operand::REGISTER(GS)), None, None, None]}),
+        (0xA9, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::POP, operands: [Some(Opcode_Operand::REGISTER(GS)), None, None, None]}),
+        (0xAA, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::RSM, operands: [None, None, None, None]}),
+        (0xAB, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BTS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None]}),
+        (0xAC, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SHRD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+        (0xAD, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::SHRD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::REGISTER(CL)), None]}),
+        (0xAF, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::IMUL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::REGISTER(CL)), None]}),
+
+        (0xB0, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CMPXCHG, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None]}),
+        (0xB1, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::CMPXCHG, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None]}),
+        (0xB2, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::LSS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp)), None, None]}),
+        (0xB3, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BTR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None]}),
+        (0xB4, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::LFS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp)), None, None]}),
+        (0xB5, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::LGS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mp)), None, None]}),
+        (0xB6, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVZX, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None]}),
+        (0xB7, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVZX, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
+
+        (0xB8, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::POPCNT, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None]}),
+        (0xB8, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::JMPE, operands: [None, None, None, None]}),
+
+        (0xBB, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BTC, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None]}),
+
+        (0xBC, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::TZCNT, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None]}),
+        (0xBC, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BSF, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None]}),
+
+        (0xBD, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::LZCNT, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None]}),
+        (0xBD, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BSR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None]}),
+
+        (0xBE, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVSX, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), None, None]}),
+        (0xBF, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVSX, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ew)), None, None]}),
+
+        (0xC0, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::XADD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None]}),
+
+        (0xC1, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::XADD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None]}),
+
+        (0xC2, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CMP_PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+        (0xC2, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CMP_SS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hss)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wss)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+        (0xC2, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CMP_SD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hsd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wsd)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+        (0xC2, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::V_CMP_PS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+
+        (0xC3, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOV_NTL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::My)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gy)), None, None]}),
+
+        //TODO: idk what the operands of this are supposed to be...?
+        // (0xC4, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::PINSRW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+        // (0xC4, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::VPINSRW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+
+        (0xC5, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPEXTRW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Udq)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+        (0xC5, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PEXTRW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Nq)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib)), None]}),
+
+        (0xC6, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VSHUFPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+        (0xC6, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VSHUFPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), Some(Opcode_Operand::IMM_BYTES(Opcode_Operand_Imm::Ib))]}),
+
+        (0xC8..=0xCF, InstMode::x32, _) =>
+            Some(Opcode_Table_Result { instruction: Instruction_Name::BSWAP, operands: [Some(Opcode_Operand::REGISTER(
+                match rex_w {
+                    false => search_register(modrm.reg_op, Register_Type::GP, Register_Size::_32, None).unwrap(),
+                    true => search_register(modrm.reg_op, Register_Type::GP, Register_Size::_64, Some(rex_w)).unwrap(),
+                })),
+            None, None, None] }),
+        
+        (0xD0, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VADDSUBPD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hpd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None]}),
+        (0xD0, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VADDSUBPS, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hps)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wps)), None]}),
+
+        (0xD1, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSRLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xD1, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSRLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xD2, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSRLD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xD2, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSRLD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xD3, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSRLQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xD3, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSRLQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xD4, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xD4, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xD5, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMULLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xD5, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMULLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xD6, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMOVQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vq)), None, None]}),
+        (0xD6, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVQ2DQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vdq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Nq)), None, None]}),
+        (0xD6, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVDQ2Q, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Uq)), None, None]}),
+
+        (0xD7, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMOVMSKB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ux)), None, None]}),
+        (0xD7, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMOVMSKB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gd)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Nq)), None, None]}),
+
+        (0xD8, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBUSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xD8, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBUSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xD9, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBUSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xD9, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBUSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xDA, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMINUB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xDA, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMINUB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xDB, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPAND, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xDB, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PAND, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xDC, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDUSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xDC, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDUSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xDD, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDUSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xDD, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDUSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xDE, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMAXUB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xDE, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMAXUB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xDF, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPANDN, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xDF, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PANDN, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+
+        (0xE0, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPAVGB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE0, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PAVGB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xE1, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSRLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE1, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSRLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xE2, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSRAW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE2, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSRAW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xE3, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSRAD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE3, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSRAD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xE4, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMULHUW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE4, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMULHUW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xE5, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMULHW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE5, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMULHW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xE6, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VCTTPD2DQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+        (0xE6, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VCVTDQ2PD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+        (0xE6, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VCVTPD2DQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wpd)), None, None]}),
+
+        (0xE7, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMOVNTDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), None, None]}),
+        (0xE7, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MOVNTDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), None, None]}),
+
+        (0xE8, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBUSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE8, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xE9, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBUSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xE9, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBUSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xEA, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMINSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xEA, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMINSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xEB, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPOR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xEB, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::POR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xEC, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xEC, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDSB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xED, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xED, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xEE, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMAXSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xEE, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMAXSW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xEF, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPXOR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xEF, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PXOR, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+
+
+        (0xF0, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPNZ_BND_F2), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VLDDQU, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Mx)), None, None]}),
+
+        (0xF1, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSLLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF1, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSLLW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xF2, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSLLD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF2, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSLLD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xF3, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSLLQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF3, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSLLQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xF4, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMULUDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF4, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMULUDQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xF5, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPMADDWD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF5, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PMADDWD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xF6, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSADBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF6, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSADBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xF7, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VMASKMOVDQU, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vdq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Udq)), None, None]}),
+        (0xF7, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::MASKMOVQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Nq)), None, None]}),
+
+
+        (0xF8, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF8, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xF9, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xF9, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xFA, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xFA, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xFB, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPSUBQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xFB, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PSUBQ, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xFC, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xFC, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDB, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xFD, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xFD, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDW, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
+
+        (0xFE, _, Inst_Prefix { prefixes: Prefix_Acc { group3: Some(Prefix_Group3::Operand_Override_66), .. }, .. }) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::VPADDD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Vx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Hx)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Wx)), None]}),
+        (0xFE, _, _) => 
+            Some(Opcode_Table_Result { instruction: Instruction_Name::PADDD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Pq)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Qq)), None, None]}),
 
         _ => None
     }

@@ -320,7 +320,10 @@ struct Dref
 enum Instruction_Operand
 {
     REGISTER(Register),
-    IMM(i64),
+    IMM_64(i64),
+    IMM_32(i32),
+    IMM_16(i16),
+    IMM_8(i8),
     DREF(Dref), 
 }
 
@@ -333,7 +336,19 @@ impl std::fmt::Display for Instruction_Operand {
                 write!(f, " {}", reg)?;
             },
 
-            Instruction_Operand::IMM(imm) => {
+            Instruction_Operand::IMM_64(imm) => {
+                write!(f, " {:#x}", imm)?;
+            }
+
+            Instruction_Operand::IMM_32(imm) => {
+                write!(f, " {:#x}", imm)?;
+            }
+
+            Instruction_Operand::IMM_16(imm) => {
+                write!(f, " {:#x}", imm)?;
+            }
+
+            Instruction_Operand::IMM_8(imm) => {
                 write!(f, " {:#x}", imm)?;
             }
 
@@ -441,14 +456,14 @@ fn parse_sib_byte(reader: &mut MyReader, modrm: &ModRMByte, add_size: Register_S
     }));
 }
 
-fn lookup_32_effective_address(reader: &mut MyReader, modrm: &ModRMByte, add_size: Register_Size, op_size: Register_Size, rex: &Option<Rex_Prefix>) -> std::io::Result<Instruction_Operand>
+fn lookup_32_effective_address(reader: &mut MyReader, modrm: &ModRMByte, add_size: Register_Size, op_size: Register_Size, op_type: Register_Type, rex: &Option<Rex_Prefix>) -> std::io::Result<Instruction_Operand>
 {
     let add_reg = search_register(modrm.rm, Register_Type::GP, add_size, match rex {
         Some (r) => Some(r.b),
         _        => None
     }).unwrap();
 
-    let op_reg = search_register(modrm.rm, Register_Type::GP, op_size, match rex {
+    let op_reg = search_register(modrm.rm, op_type, op_size, match rex {
         Some (r) => Some(r.b),
         _        => None
     }).unwrap();
@@ -509,7 +524,7 @@ fn lookup_32_effective_address(reader: &mut MyReader, modrm: &ModRMByte, add_siz
     }
 }
 
-fn handle_modrm_operand(reader: &mut MyReader, mode: InstMode, op: Opcode_Operand_ModRM, modrm: &ModRMByte, opcode: u8, operand_override: bool, address_override: bool, rex: &Option<Rex_Prefix>, vex: &Option<Vex_Prefix>) -> std::io::Result<Instruction_Operand>
+fn handle_modrm_operand(reader: &mut MyReader, mode: InstMode, op: Opcode_Operand_ModRM, modrm: &ModRMByte, opcode: u8, operand_override: bool, address_override: bool, rex: &Option<Rex_Prefix>, vex: &Option<Vex_Prefix>) -> std::io::Result<Option<Instruction_Operand>>
 {
     let add_size = match (mode, address_override, rex) 
     {
@@ -544,63 +559,354 @@ fn handle_modrm_operand(reader: &mut MyReader, mode: InstMode, op: Opcode_Operan
         (InstMode::x64, false, _) => Register_Size::_64,
     };
 
+    let y_size = match (mode, operand_override)
+    {
+        (InstMode::x32, _) => Register_Size::_32,
+        (InstMode::x64, true) => Register_Size::_32,
+        (InstMode::x64, false) => Register_Size::_64,
+    };
+
     match op
     {
-        Opcode_Operand_ModRM::Eb =>     lookup_32_effective_address(reader, modrm, add_size, Register_Size::_8, &rex),
-        Opcode_Operand_ModRM::Ev =>     lookup_32_effective_address(reader, modrm, add_size, v_op_size, &rex),
-        Opcode_Operand_ModRM::Ev_d64 => lookup_32_effective_address(reader, modrm, add_size, d64_size, &rex),
-        Opcode_Operand_ModRM::Ew =>     lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, &rex),
+        Opcode_Operand_ModRM::Cd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::CON, Register_Size::_32, None)?))),
+        Opcode_Operand_ModRM::Dd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::DEB, Register_Size::_32, None)?))),
+        Opcode_Operand_ModRM::Rd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::GP,  Register_Size::_32, None)?))),
 
-        Opcode_Operand_ModRM::M  =>     lookup_32_effective_address(reader, modrm, add_size, v_op_size, &rex),
-        Opcode_Operand_ModRM::Ma =>     lookup_32_effective_address(reader, modrm, add_size, v_op_size, &rex),
-        Opcode_Operand_ModRM::Mp =>     lookup_32_effective_address(reader, modrm, add_size, v_op_size, &rex),
+        Opcode_Operand_ModRM::Ppi => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::MMX,  Register_Size::_64, None)?))),
+        Opcode_Operand_ModRM::Pq  => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::MMX,  Register_Size::_64, None)?))),
+        Opcode_Operand_ModRM::Pd  => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::MMX,  Register_Size::_64, None)?))),
+        
+        Opcode_Operand_ModRM::Nq => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::MMX,  Register_Size::_64, None)?))),
 
-        Opcode_Operand_ModRM::Sw => Ok(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::SEG, Register_Size::_16, match rex {
+        Opcode_Operand_ModRM::Qpi => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::MMX, &None)?)),
+        Opcode_Operand_ModRM::Qd => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::MMX, &None)?)),
+        Opcode_Operand_ModRM::Qq => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::MMX, &None)?)),
+
+        Opcode_Operand_ModRM::Eb =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_8, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Ev =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Ev_d64 => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, d64_size, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Ew =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Ey =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, y_size, Register_Type::GP, &rex)?)),
+
+        Opcode_Operand_ModRM::M  =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Ma =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Mp =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Mq =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
+        Opcode_Operand_ModRM::Mx =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            Register_Size::_128,
+            Register_Type::XMM,
+            &None).unwrap()
+        )),
+
+        Opcode_Operand_ModRM::My =>    Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, 
+            match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            },
+            &None).unwrap()
+        )),
+
+        Opcode_Operand_ModRM::Mps =>    Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, 
+            match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            },
+            &None).unwrap()
+        )),
+
+        Opcode_Operand_ModRM::Mpd =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, 
+            match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            },
+            &None).unwrap()
+        )),
+
+        Opcode_Operand_ModRM::Sw => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::SEG, Register_Size::_16, match rex {
             Some (r) => Some(r.r),
             _ => None
-        })?)),
+        })?))),
 
-        Opcode_Operand_ModRM::Gb => Ok(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_8, match rex {
+        Opcode_Operand_ModRM::Gb => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_8, match rex {
             Some (r) => Some(r.r),
             _ => None
-        })?)),
+        })?))),
 
-        Opcode_Operand_ModRM::Gv => Ok(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, v_op_size, match rex {
+        Opcode_Operand_ModRM::Gv => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, v_op_size, match rex {
             Some (r) => Some(r.r),
             _ => None
-        })?)),
+        })?))),
 
-        Opcode_Operand_ModRM::Gw => Ok(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_16, match rex {
+        Opcode_Operand_ModRM::Gw => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_16, match rex {
             Some (r) => Some(r.r),
             _ => None
-        })?)),
+        })?))),
 
-        Opcode_Operand_ModRM::Gz => Ok(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, z_size, match rex {
+        Opcode_Operand_ModRM::Gz => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, z_size, match rex {
             Some (r) => Some(r.r),
             _ => None
-        })?)),
+        })?))),
 
-        Opcode_Operand_ModRM::FLOAT_Single_Real => lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, &None),
+        Opcode_Operand_ModRM::Gy => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, y_size, match rex {
+            Some (r) => Some(r.r),
+            _ => None
+        })?))),
+
+        Opcode_Operand_ModRM::Gd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_32, match rex {
+            Some (r) => Some(r.r),
+            _ => None
+        })?))),
+
+        Opcode_Operand_ModRM::FLOAT_Single_Real => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, Register_Type::GP, &None)?)),
 
         // 16 means 14 and 32 means 28 FPU environment
-        Opcode_Operand_ModRM::FLOAT_14_28_byte => lookup_32_effective_address(reader, modrm, add_size, v_op_size, &None),
+        Opcode_Operand_ModRM::FLOAT_14_28_byte => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &None)?)),
 
-        Opcode_Operand_ModRM::FLOAT_2_byte => lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, &None),
+        Opcode_Operand_ModRM::FLOAT_2_byte => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, Register_Type::GP, &None)?)),
 
-        Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER => lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, &None),
-        Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL => lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, &None),
-        Opcode_Operand_ModRM::FLOAT_98_108_byte => lookup_32_effective_address(reader, modrm, add_size, v_op_size, &None),
-        Opcode_Operand_ModRM::FLOAT_WORD_INTEGER => lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, &None),
-        Opcode_Operand_ModRM::FLOAT_PACKED_BCD => lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, &None),
-        Opcode_Operand_ModRM::FLOAT_QUAD_INTEGER => lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, &None),
+        Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, Register_Type::GP, &None)?)),
+        Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL =>   Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::GP, &None)?)),
+        Opcode_Operand_ModRM::FLOAT_98_108_byte =>   Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &None)?)),
+        Opcode_Operand_ModRM::FLOAT_WORD_INTEGER =>  Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, Register_Type::GP, &None)?)),
+        Opcode_Operand_ModRM::FLOAT_PACKED_BCD =>    Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, Register_Type::GP, &None)?)),
+        Opcode_Operand_ModRM::FLOAT_QUAD_INTEGER =>  Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::GP, &None)?)),
 
-        // Opcode_Operand_ModRM::Hx => Ok(Instruction_Operand::REGISTER(search_register(vex.unwrap().v_reg, match vex.unwrap().vector_length {
-        //     Vector_Length::_128 => Register_Type::XMM,
-        //     Vector_Length::_256 => Register_Type::YMM,
-        // }, match vex.unwrap().vector_length {
-        //     Vector_Length::_128 => Register_Size::_128,
-        //     Vector_Length::_256 => Register_Size::_256,
-        // }, None).unwrap())),
+        Opcode_Operand_ModRM::Hx => Ok(
+        match vex {
+            Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, match vex.vector_length {
+                Vector_Length::_128 => Register_Type::XMM,
+                Vector_Length::_256 => Register_Type::YMM,
+            }, match vex.vector_length {
+                Vector_Length::_128 => Register_Size::_128,
+                Vector_Length::_256 => Register_Size::_256,
+            }, None).unwrap())),
+
+            None => None,
+        }),
+
+        Opcode_Operand_ModRM::Hss => Ok(
+            match vex {
+                Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+                None => None
+            }
+        ),
+
+        Opcode_Operand_ModRM::Hsd => Ok(
+            match vex {
+                Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+                None => None
+            }
+        ),
+
+        Opcode_Operand_ModRM::Hq => Ok(
+            match vex {
+                Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+                None => None
+            }
+        ),
+
+        Opcode_Operand_ModRM::Hps => Ok(
+        match vex {
+            Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, match vex.vector_length {
+                Vector_Length::_128 => Register_Type::XMM,
+                Vector_Length::_256 => Register_Type::YMM,
+            }, match vex.vector_length {
+                Vector_Length::_128 => Register_Size::_128,
+                Vector_Length::_256 => Register_Size::_256,
+            }, None).unwrap())),
+
+            None => None,
+        }),
+
+        Opcode_Operand_ModRM::Hpd => Ok(
+        match vex {
+            Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, match vex.vector_length {
+                Vector_Length::_128 => Register_Type::XMM,
+                Vector_Length::_256 => Register_Type::YMM,
+            }, match vex.vector_length {
+                Vector_Length::_128 => Register_Size::_128,
+                Vector_Length::_256 => Register_Size::_256,
+            }, None).unwrap())),
+
+            None => None,
+        }),
+
+        Opcode_Operand_ModRM::Vx => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op,
+                match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, None).unwrap()))
+        ),
+
+        Opcode_Operand_ModRM::Vss => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+        ),
+
+        Opcode_Operand_ModRM::Vsd => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+        ),
+
+        Opcode_Operand_ModRM::Vq => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+        ),
+
+        Opcode_Operand_ModRM::Vps => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, 
+                match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, None).unwrap()))
+        ),
+
+        Opcode_Operand_ModRM::Vpd => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, 
+                match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            },
+
+            None
+        ).unwrap()))),
+
+        Opcode_Operand_ModRM::Vdq => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+        ),
+
+        Opcode_Operand_ModRM::Vy => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, 
+            match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            },
+
+            None
+        ).unwrap()))),
+
+        Opcode_Operand_ModRM::Wx => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+    match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            },
+            match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, 
+            &None)?
+        )),
+
+        Opcode_Operand_ModRM::Wps => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+    match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            },
+            match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, 
+            &None)?
+        )),
+
+        Opcode_Operand_ModRM::Wss => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            Register_Size::_128,
+            Register_Type::XMM,
+            &None)?
+        )),
+
+        Opcode_Operand_ModRM::Wsd => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            Register_Size::_128,
+            Register_Type::XMM,
+            &None)?
+        )),
+
+        Opcode_Operand_ModRM::Wpd => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+    match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            },
+            match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, 
+            &None)?
+        )),
+
+        Opcode_Operand_ModRM::Wq => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            Register_Size::_128,
+            Register_Type::XMM,
+            &None)?
+        )),
+
+        Opcode_Operand_ModRM::Wdq => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
+            Register_Size::_128,
+            Register_Type::XMM,
+            &None)?
+        )),
+
+        Opcode_Operand_ModRM::Ux => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.rm,
+                match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, None).unwrap()))
+        ),
+
+        Opcode_Operand_ModRM::Ups => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, 
+                match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, None).unwrap()))
+        ),
+
+        Opcode_Operand_ModRM::Upd => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, 
+                match operand_override {
+                true => Register_Type::XMM,
+                false => Register_Type::YMM,
+            }, match operand_override {
+                true => Register_Size::_128,
+                false => Register_Size::_256,
+            }, None).unwrap()))
+        ),
+
+        Opcode_Operand_ModRM::Uq => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+        ),
+
+        Opcode_Operand_ModRM::Udq => Ok(
+            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::XMM, Register_Size::_128, None).unwrap())),
+        ),
     }
 }
 
@@ -725,7 +1031,7 @@ fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instructi
             }
 
             Opcode_Map::TWO_BYTE => {
-                if let Some(inst) = search_opcode_two_byte(opcode, mode, &inst_prefix) {
+                if let Some(inst) = search_opcode_two_byte(opcode, mode, &inst_prefix, test_mod_rm_byte.as_ref().unwrap(), rex_w) {
                     (inst, 
                         match inst.operands.iter().any(|&x| match x { Some(Opcode_Operand::MODRM_BYTE(..)) => true, _ => false })
                         {
@@ -783,7 +1089,7 @@ fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instructi
                     mod_rm_byte = Some(ModRMByte::new(reader.take_byte()?));
                 }
 
-                operands[i] = Some(handle_modrm_operand(reader, mode, op, mod_rm_byte.as_ref().unwrap(), opcode, operand_override, address_override, &inst_prefix.rex, &inst_prefix.vex)?) 
+                operands[i] = handle_modrm_operand(reader, mode, op, mod_rm_byte.as_ref().unwrap(), opcode, operand_override, address_override, &inst_prefix.rex, &inst_prefix.vex)?
             }
             
             _ => ()
@@ -817,15 +1123,15 @@ fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instructi
 
                 match op
                 {
-                    Opcode_Operand_Dis::Jb => operands[i] = Some(Instruction_Operand::IMM(bytes_to_int(reader.take_bytes(1)?))),
-                    Opcode_Operand_Dis::Jz => operands[i] = Some(Instruction_Operand::IMM(
+                    Opcode_Operand_Dis::Jb => operands[i] = Some(Instruction_Operand::IMM_8(bytes_to_int(reader.take_bytes(1)?) as i8)),
+                    Opcode_Operand_Dis::Jz => operands[i] = Some(
                     match op_size
                     {
-                        Register_Size::_64 => bytes_to_int(reader.take_bytes(4)?),
-                        Register_Size::_32 => bytes_to_int(reader.take_bytes(4)?),
-                        Register_Size::_16 => bytes_to_int(reader.take_bytes(2)?),
+                        Register_Size::_64 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
+                        Register_Size::_32 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
+                        Register_Size::_16 => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
                         _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-                    })),
+                    }),
 
                     Opcode_Operand_Dis::Ob => operands[i] = Some(Instruction_Operand::DREF(Dref { base: None, index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
                     Opcode_Operand_Dis::Ov => operands[i] = Some(Instruction_Operand::DREF(Dref { base: None, index: None, scale: 0, disp: 
@@ -858,17 +1164,17 @@ fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instructi
                     (_, true, None) => Register_Size::_16,
                 };
 
-                operands[i] = Some(Instruction_Operand::IMM(match imm 
+                operands[i] = Some(match imm 
                 {
-                    Opcode_Operand_Imm::Ib => bytes_to_int(reader.take_bytes(1)?),
-                    Opcode_Operand_Imm::Iw => bytes_to_int(reader.take_bytes(2)?),
+                    Opcode_Operand_Imm::Ib => Instruction_Operand::IMM_8(bytes_to_int(reader.take_bytes(1)?) as i8),
+                    Opcode_Operand_Imm::Iw => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
 
                     Opcode_Operand_Imm::Iv => {
                         match op_size
                         {
-                            Register_Size::_64 => bytes_to_int(reader.take_bytes(8)?),
-                            Register_Size::_32 => bytes_to_int(reader.take_bytes(4)?),
-                            Register_Size::_16 => bytes_to_int(reader.take_bytes(2)?),
+                            Register_Size::_64 => Instruction_Operand::IMM_64(bytes_to_int(reader.take_bytes(8)?) as i64),
+                            Register_Size::_32 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
+                            Register_Size::_16 => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
                             _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
                         }
                     },
@@ -877,13 +1183,13 @@ fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instructi
                     {
                         match op_size
                         {
-                            Register_Size::_64 => bytes_to_int(reader.take_bytes(4)?),
-                            Register_Size::_32 => bytes_to_int(reader.take_bytes(4)?),
-                            Register_Size::_16 => bytes_to_int(reader.take_bytes(2)?),
+                            Register_Size::_64 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
+                            Register_Size::_32 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
+                            Register_Size::_16 => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
                             _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
                         }
                     },
-                }));
+                });
             }
             
             _ => ()
@@ -948,6 +1254,17 @@ fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instructi
             None => (),
 
             _ => (),
+        }
+    }
+
+    let mut write_index = 0;
+    for read_index in 0..operands.len() {
+        if let Some(val) = operands[read_index] {
+            operands[write_index] = Some(val);
+            if write_index != read_index {
+                operands[read_index] = None;
+            }
+            write_index += 1;
         }
     }
 
@@ -1443,35 +1760,57 @@ fn main() -> std::io::Result<()>
     //*********** WINDOWS PE FILE ***********//
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     d.push("res/test.exe");
-    let (exe, mut reader) = parse_windows_exe(d.into()).unwrap();
     let text_section = exe.section_headers.get(TEXT_SECTION).unwrap();
-    reader.seek(text_section.data_offset as usize)?;
 
-    while reader.cursor < (text_section.data_offset + text_section.data_length) as usize
-    {
-        let pos = reader.cursor;
+    println!("{:#x?}", exe.optional_header.entry_point_offset);
+
+    // TODO: actually get the entry point by analyzing scrt_common_main
+    let entry = 0x40;
+
+    reader.seek((text_section.data_offset + entry) as usize)?;
+    let mut insts =  Vec::new();
+    loop {
+
         let inst = read_inst(InstMode::x32, &mut reader);
-        if inst.is_ok()
-        {
-            let end_pos = reader.cursor;
-            print!("({:#x}): ", pos);
-
-            reader.seek(pos)?;
-            while reader.cursor != end_pos {
-                print!("{:#x} ", reader.take_byte()?);
+        if let Ok(inst) = inst {
+            if inst.name == Instruction_Name::far_Ret || inst.name == Instruction_Name::near_Ret {
+                insts.push(inst);
+                break;
+            } else {
+                insts.push(inst);
             }
-
-            println!("");
-            println!(" {} ", inst?);
-            println!("");
-
-            reader.seek(end_pos)?;
-        } else {
-            reader.seek(pos)?;
-            println!("({:#x}): {:#x} (bad) -----------------------------------------------", pos, reader.take_byte()?);
-            println!("");
         }
     }
+
+    for inst in insts {
+        println!("{:#?}", inst);
+    }
+
+    // while reader.cursor < (text_section.data_offset + text_section.data_length) as usize
+    // {
+    //     let pos = reader.cursor;
+    //     let inst = read_inst(InstMode::x32, &mut reader);
+    //     if inst.is_ok()
+    //     {
+    //         let end_pos = reader.cursor;
+    //         print!("({:#x}): ", pos);
+
+    //         reader.seek(pos)?;
+    //         while reader.cursor != end_pos {
+    //             print!("{:#x} ", reader.take_byte()?);
+    //         }
+
+    //         println!("");
+    //         println!(" {} ", inst?);
+    //         println!("");
+
+    //         reader.seek(end_pos)?;
+    //     } else {
+    //         reader.seek(pos)?;
+    //         println!("({:#x}): {:#x} (bad) -----------------------------------------------", pos, reader.take_byte()?);
+    //         println!("");
+    //     }
+    // }
 
     // println!("{:?}", read_inst(InstMode::x64, &mut reader));
     // Read in the bytes from a stream

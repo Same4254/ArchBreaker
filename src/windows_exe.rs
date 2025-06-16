@@ -272,32 +272,32 @@ pub struct CommonObjectFileHeader {
 #[derive(Debug)]
 pub struct OptionalHeaderStandardFields {
     // The unsigned integer that identifies the state of the image file. The most common number is 0x10B, which identifies it as a normal executable file. 0x107 identifies it as a ROM image, and 0x20B identifies it as a PE32+ executable
-    pe_type: PEType,
+    pub pe_type: PEType,
 
     // The linker major version number
-    linker_version_major: u8,
+    pub linker_version_major: u8,
     
     // The linker minor version number.
-    linker_version_minor: u8,
+    pub linker_version_minor: u8,
     
     // The size of the code (text) section, or the sum of all code sections if there are multiple sections
-    code_length: u32,
+    pub code_length: u32,
     
     // The size of the initialized data section, or the sum of all such sections if there are multiple data sections
-    init_data_length: u32,
+    pub init_data_length: u32,
     
     // The size of the uninitialized data section (BSS), or the sum of all such sections if there are multiple BSS sections
-    uninit_data_length: u32,
+    pub uninit_data_length: u32,
 
     // The address of the entry point relative to the image base when the executable file is loaded into memory. For program images, this is the starting address. For device drivers, this is the address of the initialization function. An entry point is optional for DLLs. When no entry point is present, this field must be zero.
-    entry_point_offset: u32,
+    pub entry_point_offset: u32,
     
     // The address that is relative to the image base of the beginning-of-code section when it is loaded into memory.
-    base_of_code_offset: u32,
+    pub base_of_code_offset: u32,
 
     // only in PE32, not PE32+
     // The address that is relative to the image base of the beginning-of-data section when it is loaded into memory
-    base_of_data_offset: Option<u32>,
+    pub base_of_data_offset: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -744,11 +744,6 @@ pub fn parse_windows_exe(path: PathBuf) -> Result<(WindowsEXE, MyReader), PEPars
     };
 
     let opt_header = {
-        let base_of_data_offset = match opt_header_magic {
-            PEType::PE32 => Some(bytes_to_int(reader.take_bytes(4)?) as u32),
-            _ => None,
-        };
-
         OptionalHeaderStandardFields {
             pe_type: opt_header_magic.clone(),
             linker_version_major: reader.take_byte()?,
@@ -758,7 +753,10 @@ pub fn parse_windows_exe(path: PathBuf) -> Result<(WindowsEXE, MyReader), PEPars
             uninit_data_length: bytes_to_int(reader.take_bytes(4)?) as u32,
             entry_point_offset: bytes_to_int(reader.take_bytes(4)?) as u32,
             base_of_code_offset: bytes_to_int(reader.take_bytes(4)?) as u32,
-            base_of_data_offset,
+            base_of_data_offset: match opt_header_magic {
+                PEType::PE32 => Some(bytes_to_int(reader.take_bytes(4)?) as u32),
+                _ => None,
+            },
         }
     };
 
