@@ -1,11 +1,17 @@
-#[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[repr(i32)]
 pub enum Register_Size
 {
-    _8, _16, _32, _64, _80, _128, _256
+    _8 = 1, 
+    _16 = 2, 
+    _32 = 4, 
+    _64 = 8, 
+    _80 = 10, 
+    _128 = 16, 
+    _256 = 32,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum Register_Type
 {
@@ -13,7 +19,7 @@ pub enum Register_Type
     SEG, CON, DEB
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Register
 {
     pub name: &'static str,
@@ -28,54 +34,54 @@ impl std::fmt::Display for Register {
     }
 }
 
-macro_rules! declare_regs 
-{
-    (
-        $(($code1:expr, $code2:expr, $reg_name:ident, $size:ident, $type:ident)),+
-        $(,)?
-    ) => {
-        $(
-            pub const $reg_name: Register = Register {
-                name: stringify!($reg_name),
-                ty:   Register_Type::$type,
-                size: Register_Size::$size,
-            };
-        )+
-
-        pub fn search_register(byte: u8, ty: Register_Type, size: Register_Size, rex_override: Option<bool>) -> Option<Register>
-        {
-            let mod_byte = match rex_override
-            {
-                Some (true) => byte | (1 << 3),
-                _ => byte
-            };
-
-            let x = (mod_byte, ty, size, rex_override);
-
-            match x 
-            {
-                // hardcoded cases based on the presence of REX prefix
-                (0b0100, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(SPL),
-                (0b0100, Register_Type::GP, Register_Size::_8, None) => return Ok(AH),
-                (0b0101, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(BPL),
-                (0b0101, Register_Type::GP, Register_Size::_8, None) => return Ok(CH),
-                (0b0110, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(SIL),
-                (0b0110, Register_Type::GP, Register_Size::_8, None) => return Ok(DH),
-                (0b0111, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(DIL),
-                (0b0111, Register_Type::GP, Register_Size::_8, None) => return Ok(BH),
-                _ =>
-                    match x
-                    {
-                        $(
-                            ($code1 | $code2, Register_Type::$type, Register_Size::$size, _) => Ok($reg_name),
-                        )+
-
-                        _ => None
-                    }
-            }
-        }
-    };
-}
+// macro_rules! declare_regs 
+// {
+//     (
+//         $(($code1:expr, $code2:expr, $reg_name:ident, $size:ident, $type:ident)),+
+//         $(,)?
+//     ) => {
+//         $(
+//             pub const $reg_name: Register = Register {
+//                 name: stringify!($reg_name),
+//                 ty:   Register_Type::$type,
+//                 size: Register_Size::$size,
+//             };
+//         )+
+// 
+//         pub fn search_register(byte: u8, ty: Register_Type, size: Register_Size, rex_override: Option<bool>) -> Option<Register>
+//         {
+//             let mod_byte = match rex_override
+//             {
+//                 Some (true) => byte | (1 << 3),
+//                 _ => byte
+//             };
+// 
+//             let x = (mod_byte, ty, size, rex_override);
+// 
+//             match x 
+//             {
+//                 // hardcoded cases based on the presence of REX prefix
+//                 (0b0100, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(SPL),
+//                 (0b0100, Register_Type::GP, Register_Size::_8, None) => return Ok(AH),
+//                 (0b0101, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(BPL),
+//                 (0b0101, Register_Type::GP, Register_Size::_8, None) => return Ok(CH),
+//                 (0b0110, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(SIL),
+//                 (0b0110, Register_Type::GP, Register_Size::_8, None) => return Ok(DH),
+//                 (0b0111, Register_Type::GP, Register_Size::_8, Some(..))  => return Ok(DIL),
+//                 (0b0111, Register_Type::GP, Register_Size::_8, None) => return Ok(BH),
+//                 _ =>
+//                     match x
+//                     {
+//                         $(
+//                             ($code1 | $code2, Register_Type::$type, Register_Size::$size, _) => Ok($reg_name),
+//                         )+
+// 
+//                         _ => None
+//                     }
+//             }
+//         }
+//     };
+// }
 
 // declare_regs!(
 //     // 8 bit GP

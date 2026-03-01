@@ -1,10 +1,12 @@
-use std::{fs, io::Bytes, path::{Path, PathBuf}};
+use std::{fs, path::PathBuf};
 use std::collections::HashMap;
 
 use crate::util::*;
 
 pub const DATA_SECTION: &'static str = ".data";
+
 pub const RDATA_SECTION: &'static str = ".rdata";
+
 pub const TEXT_SECTION: &'static str = ".text";
 
 #[derive(Debug)]
@@ -37,6 +39,7 @@ pub enum PEType {
 
 #[derive(Debug)]
 #[repr(u16)]
+#[allow(non_camel_case_types)]
 pub enum Characteristics {
     // Image only, Windows CE, and Microsoft Windows NT and later. This indicates that the file does not contain base relocations and must therefore be loaded at its preferred base address. If the base address is not available, the loader reports an error. The default behavior of the linker is to strip base relocations from executable (EXE) files.
     IMAGE_FILE_RELOCS_STRIPPED = 0x0001,
@@ -139,6 +142,7 @@ fn parse_characteristics(value: u16) -> Vec<Characteristics> {
 }
 
 #[derive(Debug)]
+#[allow(non_camel_case_types)]
 pub enum MachineType {
     // The content of this field is assumed to be applicable to any machine type
     IMAGE_FILE_MACHINE_UNKNOWN = 0x0,
@@ -854,7 +858,7 @@ pub fn parse_windows_exe(path: PathBuf) -> Result<(WindowsEXE, MyReader), PEPars
 
     let section_headers = {
         let mut section_headers = HashMap::new();
-        for i in 0..coff.num_sections {
+        for _ in 0..coff.num_sections {
             let name = std::str::from_utf8(reader.take_bytes(8)?)?.trim_end_matches('\0').to_string();
             section_headers.insert(name.clone(), SectionHeader {
                 name,

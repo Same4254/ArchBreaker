@@ -1,7 +1,6 @@
 use crate::{registers::*, Inst_Prefix, ModRMByte, Prefix_Acc, Prefix_Group1, Prefix_Group3};
 
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub enum InstMode
 {
     x64,
@@ -9,7 +8,6 @@ pub enum InstMode
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-#[allow(non_camel_case_types)]
 pub enum Instruction_Name
 {
     PUSH,
@@ -255,7 +253,6 @@ impl std::fmt::Display for Instruction_Name {
 
 // Some opcodes tell you the register, but not the exact size. The size is determined by other factors
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub enum Register_Unsized
 {
     eAX,
@@ -320,7 +317,6 @@ pub fn size_register(reg: Register_Unsized, size: Register_Size) -> std::io::Res
 }
 
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub enum Register_Known_Or_Unsized
 {
     UNSIZED(Register_Unsized),
@@ -329,7 +325,6 @@ pub enum Register_Known_Or_Unsized
 }
 
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub enum Opcode_Operand_ModRM
 {
     Eb, Ev, Ev_d64, Ew, Ey,
@@ -360,7 +355,6 @@ pub enum Opcode_Operand_ModRM
 }
 
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub enum Opcode_Operand_Dis
 {
     Jb, Jz, Jq,
@@ -369,14 +363,12 @@ pub enum Opcode_Operand_Dis
 }
 
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub enum Opcode_Operand_Imm
 {
     Ib, Iw, Iv, Iz,
 }
 
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub enum Opcode_Operand
 {
     Yb, Yv, Yz,
@@ -398,7 +390,6 @@ pub enum Opcode_Operand
 }
 
 #[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub struct Opcode_Table_Result
 {
     pub instruction: Instruction_Name,
@@ -434,7 +425,7 @@ pub struct Opcode_Table_Result
 
 // Some(Opcode_Operand::REGISTER(search_register(modrm.rm, Register_Type::x87, Register_Size::_80, None).unwrap())),
 
-fn d8_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn d8_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let d8_row = (modrm.byte & 0xF0) >> 4;
     let d8_col = (modrm.byte & 0x0F) >> 0;
@@ -526,7 +517,7 @@ fn d8_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-fn d9_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn d9_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     match modrm.byte {
         0xc0 => Some(Opcode_Table_Result {
@@ -963,7 +954,7 @@ fn d9_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-fn da_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn da_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let da_row = (modrm.byte & 0xF0) >> 4;
     let da_col = (modrm.byte & 0x0F) >> 0;
@@ -1052,7 +1043,7 @@ fn da_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-fn db_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn db_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let db_row = (modrm.byte & 0xF0) >> 4;
     let db_col = (modrm.byte & 0x0F) >> 0;
@@ -1168,7 +1159,7 @@ fn db_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-fn dc_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn dc_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let dc_row = (modrm.byte & 0xF0) >> 4;
     let dc_col = (modrm.byte & 0x0F) >> 0;
@@ -1256,7 +1247,7 @@ fn dc_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-fn dd_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn dd_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let dd_row = (modrm.byte & 0xF0) >> 4;
     let dd_col = (modrm.byte & 0x0F) >> 0;
@@ -1394,7 +1385,7 @@ fn dd_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-fn de_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn de_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let de_row = (modrm.byte & 0xF0) >> 4;
     let de_col = (modrm.byte & 0x0F) >> 0;
@@ -1494,7 +1485,7 @@ fn de_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-fn df_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+fn df_lookup(modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let df_row = (modrm.byte & 0xF0) >> 4;
     let df_col = (modrm.byte & 0x0F) >> 0;
@@ -1574,7 +1565,7 @@ fn df_lookup(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
     }
 }
 
-pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
+pub fn search_opcode_one_byte_float(opcode: u8, modrm: &ModRMByte) -> Option<Opcode_Table_Result>
 {
     let in_bf_range = modrm.byte <= 0xBF;
 
@@ -1652,7 +1643,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
                 None,
             ]}),
 
-        (0xd8, false, modrm) => d8_lookup(opcode, modrm),
+        (0xd8, false, modrm) => d8_lookup(modrm),
 
         (0xd9, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
             instruction: Instruction_Name::FLD,
@@ -1736,7 +1727,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
             ]
         }),
 
-        (0xd9, false, modrm) => d9_lookup(opcode, modrm),
+        (0xd9, false, modrm) => d9_lookup(modrm),
 
         (0xda, true, ModRMByte { reg_op: 0b001, ..}) => Some(Opcode_Table_Result {
             instruction: Instruction_Name::FIMUL,
@@ -1808,7 +1799,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
             ]
         }),
 
-        (0xda, false, modrm) => da_lookup(opcode, modrm),
+        (0xda, false, modrm) => da_lookup(modrm),
 
         (0xdb, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
             instruction: Instruction_Name::FILD,
@@ -1870,7 +1861,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
             ]
         }),
 
-        (0xdb, true, modrm) => db_lookup(opcode, modrm),
+        (0xdb, true, modrm) => db_lookup(modrm),
 
         (0xdc, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
             instruction: Instruction_Name::FADD,
@@ -1952,7 +1943,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
             ]
         }),
 
-        (0xdc, false, modrm) => dc_lookup(opcode, modrm),
+        (0xdc, false, modrm) => dc_lookup(modrm),
 
         (0xdd, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
             instruction: Instruction_Name::FLD,
@@ -2024,7 +2015,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
             ]
         }),
 
-        (0xdd, true, modrm) => dd_lookup(opcode, modrm),
+        (0xdd, true, modrm) => dd_lookup(modrm),
 
         (0xde, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
             instruction: Instruction_Name::FIADD,
@@ -2106,7 +2097,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
             ]
         }),
 
-        (0xde, true, modrm) => de_lookup(opcode, modrm),
+        (0xde, true, modrm) => de_lookup(modrm),
 
         (0xdf, true, ModRMByte { reg_op: 0b000, ..}) => Some(Opcode_Table_Result {
             instruction: Instruction_Name::FILD,
@@ -2188,7 +2179,7 @@ pub fn search_opcode_one_byte_float(inst_mode: InstMode, opcode: u8, modrm: &Mod
             ]
         }),
 
-        (0xdf, false, modrm) => df_lookup(opcode, modrm),
+        (0xdf, false, modrm) => df_lookup(modrm),
 
         _ => None,
     }
@@ -6205,7 +6196,7 @@ pub fn search_opcode_two_byte(opcode: u8, mode: InstMode, prefix: &Inst_Prefix, 
         (0xAD, _, _) => 
             Some(Opcode_Table_Result { instruction: Instruction_Name::SHRD, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::REGISTER(CL)), None]}),
         (0xAF, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::IMUL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::REGISTER(CL)), None]}),
+            Some(Opcode_Table_Result { instruction: Instruction_Name::IMUL, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None]}),
 
         (0xB0, _, _) => 
             Some(Opcode_Table_Result { instruction: Instruction_Name::CMPXCHG, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Eb)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gb)), None, None]}),
@@ -6226,8 +6217,8 @@ pub fn search_opcode_two_byte(opcode: u8, mode: InstMode, prefix: &Inst_Prefix, 
 
         (0xB8, _, Inst_Prefix { prefixes: Prefix_Acc { group1: Some(Prefix_Group1::REPZ_F3), .. }, .. }) => 
             Some(Opcode_Table_Result { instruction: Instruction_Name::POPCNT, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), None, None]}),
-        (0xB8, _, _) => 
-            Some(Opcode_Table_Result { instruction: Instruction_Name::JMPE, operands: [None, None, None, None]}),
+        // (0xB8, _, _) => 
+        //     Some(Opcode_Table_Result { instruction: Instruction_Name::JMPE, operands: [None, None, None, None]}),
 
         (0xBB, _, _) => 
             Some(Opcode_Table_Result { instruction: Instruction_Name::BTC, operands: [Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Ev)), Some(Opcode_Operand::MODRM_BYTE(Opcode_Operand_ModRM::Gv)), None, None]}),

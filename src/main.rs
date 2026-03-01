@@ -1,1667 +1,29 @@
-//  Prefix::LOCK          => 0xF0,
-//  Prefix::REPNE         => 0xF2,
-//  Prefix::REPE          => 0xF3,
-//  Prefix::BND           => 0xF2,
-//
-//  Prefix::CS_SEG        => 0x2E,
-//  Prefix::SS_SEG        => 0x36,
-//  Prefix::DS_SEG        => 0x3E,
-//  Prefix::ES_SEG        => 0x26,
-//  Prefix::FS_SEG        => 0x64,
-//  Prefix::GS_SEG        => 0x65,
-//
-//  Prefix::BR_TAKEN      => 0x2E,
-//  Prefix::BR_NOT_TAKEN  => 0x3E,
-//
-//  Prefix::OP_SIZE       => 0x66,
-//  Prefix::AD_SIZE       => 0x67
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
+#![allow(unused_imports)]
 
-use std::path::Path;
-use std::usize;
-use std::fs;
+mod windows_exe;
+use std::collections::{BTreeMap, HashMap};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use windows_exe::*;
+
+mod disassemble;
+use disassemble::*;
+
+mod decompile;
+use decompile::*;
 
 mod registers;
 use registers::*;
 
-mod one_byte_opcode;
-use one_byte_opcode::*;
-
 mod util;
 use util::*;
 
-mod windows_exe;
-use windows_exe::*;
+mod one_byte_opcode;
+use one_byte_opcode::*;
 
-use std::path::PathBuf;
-
-const PREFIX_VALS: &[u8] = &[ 0xF0, 0xF2, 0xF3, 0x2E, 0x36, 0x3E, 0x26 ,0x64, 0x65, 0x66, 0x67 ];
-
-fn is_prefix_byte (byte: u8) -> bool 
-{
-    for val in PREFIX_VALS
-    {
-        if *val == byte
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-const REX_LOWER: u8 = 0x40;
-const REX_UPPER: u8 = 0x4F;
-
-#[derive(Debug, Clone, Copy)]
-#[allow(non_camel_case_types)]
-struct Rex_Prefix
-{
-    w: bool,
-    r: bool,
-    x: bool,
-    b: bool,
-}
-
-fn parse_rex_prefix (byte: u8) -> Option<Rex_Prefix> 
-{
-    if REX_LOWER <= byte && byte <= REX_UPPER
-    {
-        return Some(Rex_Prefix { 
-            w: ((1 << 3) & byte) > 0,
-            r: ((1 << 2) & byte) > 0,
-            x: ((1 << 1) & byte) > 0,
-            b: ((1 << 0) & byte) > 0,
-        });
-    }
-
-    return None;
-}
-
-#[allow(non_camel_case_types)]
-enum Prefix_Group1
-{
-    LOCK_F0,
-    REPNZ_BND_F2,
-    REPZ_F3,
-}
-
-#[allow(non_camel_case_types)]
-enum Prefix_Group2
-{
-    CS_2E,
-    SS_36,
-    DS_3E,
-    ES_26,
-    FS_64,
-    GS_65,
-
-    BR_NOT_TAKEN_2E,
-    BR_TAKEN_3E,
-}
-
-#[allow(non_camel_case_types)]
-enum Prefix_Group3
-{
-    Operand_Override_66,
-}
-
-#[allow(non_camel_case_types)]
-enum Prefix_Group4
-{
-    Address_Override_67,
-}
-
-#[allow(non_camel_case_types)]
-enum Prefix
-{
-    Prefix_Group1(Prefix_Group1),
-    Prefix_Group2(Prefix_Group2),
-    Prefix_Group3(Prefix_Group3),
-    Prefix_Group4(Prefix_Group4),
-}
-
-#[derive(Debug)]
-#[allow(non_camel_case_types)]
-enum Prefix_Addition_Result
-{
-    NOT_A_PREFIX,
-    GROUP_USED,
-}
-
-#[allow(non_camel_case_types)]
-struct Prefix_Acc
-{
-    group1: Option<Prefix_Group1>,
-    group2: Option<Prefix_Group2>,
-    group3: Option<Prefix_Group3>,
-    group4: Option<Prefix_Group4>,
-}
-
-impl Prefix_Acc
-{
-    fn add_prefix (&mut self, byte: u8) -> Result<(), Prefix_Addition_Result>
-    {
-        if !PREFIX_VALS.contains(&byte)
-        {
-            return Err(Prefix_Addition_Result::NOT_A_PREFIX);
-        }
-
-        match (byte, &mut *self)
-        {
-            (0xf0, Prefix_Acc{group1: None, group2: _,    group3: _,    group4: _})    => self.group1 = Some(Prefix_Group1::LOCK_F0),
-            (0xf2, Prefix_Acc{group1: None, group2: _,    group3: _,    group4: _})    => self.group1 = Some(Prefix_Group1::REPNZ_BND_F2),
-            (0xf3, Prefix_Acc{group1: None, group2: _,    group3: _,    group4: _})    => self.group1 = Some(Prefix_Group1::REPZ_F3),
-
-            (0x2e, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::CS_2E),
-            (0x36, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::SS_36),
-            (0x3e, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::DS_3E),
-            (0x26, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::ES_26),
-            (0x64, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::FS_64),
-            (0x65, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::GS_65),
-            // (0x2e, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::BR_NOT_TAKEN_2E),
-            // (0x3e, Prefix_Acc{group1: _,    group2: None, group3: _,    group4: _})    => self.group2 = Some(Prefix_Group2::BR_TAKEN_3E),
-
-            (0x66, Prefix_Acc{group1: _,    group2: _,    group3: None, group4: _})    => self.group3 = Some(Prefix_Group3::Operand_Override_66),
-            (0x67, Prefix_Acc{group1: _,    group2: _,    group3: _,    group4: None}) => self.group4 = Some(Prefix_Group4::Address_Override_67),
-            _ => () // return Err(Prefix_Addition_Result::GROUP_USED) 
-        }
-        
-        Ok(())
-    }
-}
-
-#[allow(non_camel_case_types)]
-enum Vector_Length
-{
-    _128,
-    _256
-}
-
-#[allow(non_camel_case_types)]
-enum Opcode_Map
-{
-    ONE_BYTE,
-    TWO_BYTE,
-    THREE_BYTE_38,
-    THREE_BYTE_3A,
-}
-
-#[allow(non_camel_case_types)]
-struct Vex_Prefix
-{
-    vector_length: Vector_Length,
-    v_reg        : u8,
-}
-
-#[allow(non_camel_case_types)]
-struct Inst_Prefix
-{
-    prefixes: Prefix_Acc,
-    rex: Option<Rex_Prefix>,
-    vex: Option<Vex_Prefix>,
-    opcode_map: Opcode_Map,
-}
-
-fn parse_vex_prefix_two_byte(byte_one: u8, mut prefix: Prefix_Acc) -> std::io::Result<Inst_Prefix>
-{
-    // TODO: bit field pattern match?
-    match byte_one & 0b11
-    {
-        0b00 => {},
-        0b01 => prefix.add_prefix(0x66).unwrap(),
-        0b10 => prefix.add_prefix(0xf3).unwrap(),
-        0b11 => prefix.add_prefix(0xf2).unwrap(),
-        _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-    };
-
-    let rex = Rex_Prefix {
-        w: false,
-        x: true,
-        b: true,
-        r: (byte_one & 0b10000000) == 0
-    };
-
-    let vex = Vex_Prefix {
-        vector_length: match (byte_one & 0b100) == 0
-        {
-            true  => Vector_Length::_128,
-            false => Vector_Length::_256,
-        },
-
-        v_reg: ((byte_one & 0b01111000) >> 3),
-    };
-
-    return Ok(Inst_Prefix {
-        prefixes: prefix,
-        rex: Some(rex),
-        vex: Some(vex),
-        opcode_map: Opcode_Map::TWO_BYTE
-    });
-}
-
-fn parse_vex_prefix_three_byte(byte_one: u8, byte_two: u8, mut prefix: Prefix_Acc) -> std::io::Result<Inst_Prefix>
-{
-    // TODO: bit field pattern match?
-    match byte_two & 0b11
-    {
-        0b00 => {},
-        0b01 => prefix.add_prefix(0x66).unwrap(),
-        0b10 => prefix.add_prefix(0xf3).unwrap(),
-        0b11 => prefix.add_prefix(0xf2).unwrap(),
-        _    => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-    }
-
-    let rex = Rex_Prefix {
-        w: (byte_two & 0b10000000) == 0,
-        x: (byte_one & 0b01000000) == 0,
-        b: (byte_one & 0b00100000) == 0,
-        r: (byte_one & 0b10000000) == 0,
-    };
-
-    let opcode_map = match byte_one & 0b00011111
-    {
-        0b00001 => Opcode_Map::TWO_BYTE,
-        0b00010 => Opcode_Map::THREE_BYTE_38,
-        0b00011 => Opcode_Map::THREE_BYTE_3A,
-        _       => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-    };
-
-    let vex = Vex_Prefix {
-        vector_length: match (byte_two & 0b100) == 0
-        {
-            true  => Vector_Length::_128,
-            false => Vector_Length::_256,
-        },
-
-        v_reg: ((byte_two & 0b01111000) >> 3),
-    };
-
-    return Ok(Inst_Prefix {
-        prefixes: prefix,
-        rex: Some(rex),
-        vex: Some(vex),
-        opcode_map: opcode_map,
-    });
-}
-
-struct ModRMByte
-{
-    byte: u8,
-    md: u8,
-    rm : u8,
-    reg_op: u8
-}
-
-impl ModRMByte
-{
-    pub fn new(byte: u8) -> ModRMByte
-    {
-        ModRMByte {
-            byte,
-            md     : (0b11000000 & byte) >> 6,
-            rm     : (0b00000111 & byte) >> 0,
-            reg_op : (0b00111000 & byte) >> 3,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-struct Dref
-{
-    base: Option<Register>,
-    index: Option<Register>,
-    scale: u64,
-    disp: i64,
-    res_size: Register_Size,
-}
-
-#[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
-enum Instruction_Operand
-{
-    REGISTER(Register),
-    IMM_64(i64),
-    IMM_32(i32),
-    IMM_16(i16),
-    IMM_8(i8),
-    DREF(Dref), 
-}
-
-
-impl std::fmt::Display for Instruction_Operand {
-    // This trait requires `fmt` with this exact signature.
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Instruction_Operand::REGISTER(reg) => {
-                write!(f, " {}", reg)?;
-            },
-
-            Instruction_Operand::IMM_64(imm) => {
-                write!(f, " {:#x}", imm)?;
-            }
-
-            Instruction_Operand::IMM_32(imm) => {
-                write!(f, " {:#x}", imm)?;
-            }
-
-            Instruction_Operand::IMM_16(imm) => {
-                write!(f, " {:#x}", imm)?;
-            }
-
-            Instruction_Operand::IMM_8(imm) => {
-                write!(f, " {:#x}", imm)?;
-            }
-
-            Instruction_Operand::DREF(dref) => {
-                write!(f, " [")?;
-                if dref.base.is_some() {
-                    write!(f, "{} ", dref.base.unwrap())?;
-                }
-
-                if dref.index.is_some() {
-                    write!(f, "+ {} ", dref.index.unwrap())?;
-                }
-
-                if dref.scale != 0 && dref.scale != 1 {
-                    write!(f, "* {:#x} ", dref.scale)?;
-                }
-
-                if dref.disp != 0 {
-                    write!(f, "+ {:#x}", dref.disp)?;
-                }
-
-                write!(f, "]")?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-struct Instruction
-{
-    name: Instruction_Name,
-    operands: [Option<Instruction_Operand>; 4]
-}
-
-impl std::fmt::Display for Instruction {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.name)?;
-        for operand in self.operands {
-            match operand {
-                Some(op) => write!(f, "{}", op)?,
-                _ => (),
-            };
-        }
-
-        Ok(())
-    }
-}
-
-fn parse_sib_byte(reader: &mut MyReader, modrm: &ModRMByte, add_size: Register_Size, op_size: Register_Size, rex: &Option<Rex_Prefix>) -> std::io::Result<Instruction_Operand>
-{
-    let sib: u8 = reader.take_byte()?;
-    let scale: u8 = u8::pow(2, ((sib & 0b11000000) >> 6) as u32);
-    let index: u8 =             (sib & 0b00111000) >> 3;
-    let base : u8 =             (sib & 0b00000111) >> 0;
-
-    let index_reg = match index
-    {
-        0b100 => None,
-        _     => Some(search_register(index, Register_Type::GP, add_size, match rex.as_ref() {
-                 Some (r) => Some(r.x),
-                 _ => None
-        })?)
-    };
-
-    let base_reg = match base
-    {
-        0b101 => match modrm.md
-        {
-            0b01 | 0b10 => match add_size
-            {
-                Register_Size::_64 => Some(RBP),
-                Register_Size::_32 => Some(EBP),
-                _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-            }
-            
-            _ => None
-        }
-
-        _ => Some(search_register(base, Register_Type::GP, add_size, match rex {
-            Some(r) => Some(r.b),
-            _ => None
-        })?)
-    };
-
-    let disp = match (modrm.md, base)
-    {
-        (0b01, _)     => bytes_to_int(reader.take_bytes(1)?),
-        (0b10, _)     => bytes_to_int(reader.take_bytes(4)?),
-        (0b00, 0b101) => bytes_to_int(reader.take_bytes(4)?),
-        _             => 0
-    };
-
-    return Ok(Instruction_Operand::DREF(Dref {
-        base: base_reg,
-        index: index_reg,
-        scale: match index_reg {
-            None => 0,
-            _ => scale as u64,
-        },
-
-        disp,
-        res_size: op_size,
-    }));
-}
-
-fn lookup_32_effective_address(reader: &mut MyReader, modrm: &ModRMByte, add_size: Register_Size, op_size: Register_Size, op_type: Register_Type, rex: &Option<Rex_Prefix>) -> std::io::Result<Instruction_Operand>
-{
-    let add_reg = search_register(modrm.rm, Register_Type::GP, add_size, match rex {
-        Some (r) => Some(r.b),
-        _        => None
-    }).unwrap();
-
-    let op_reg = search_register(modrm.rm, op_type, op_size, match rex {
-        Some (r) => Some(r.b),
-        _        => None
-    }).unwrap();
-
-    match add_size {
-        Register_Size::_16 => match modrm
-        {
-            // TODO: this needs to be replaced with 2 bit struct fields so that this can be exhaustive. Need to return something more meaningful
-            ModRMByte { md: 0b00, rm: 0b000, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: Some(SI), scale: 1, disp: 0, res_size: op_size })),
-            ModRMByte { md: 0b00, rm: 0b001, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: Some(DI), scale: 1, disp: 0, res_size: op_size })),
-            ModRMByte { md: 0b00, rm: 0b010, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: Some(SI), scale: 1, disp: 0, res_size: op_size })),
-            ModRMByte { md: 0b00, rm: 0b011, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: Some(DI), scale: 1, disp: 0, res_size: op_size })),
-            ModRMByte { md: 0b00, rm: 0b100, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(SI), index: None, scale: 1, disp: 0, res_size: op_size })),
-            ModRMByte { md: 0b00, rm: 0b101, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(DI), index: None, scale: 1, disp: 0, res_size: op_size })),
-            ModRMByte { md: 0b00, rm: 0b110, .. } => Ok(Instruction_Operand::DREF(Dref { base: None,     index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b00, rm: 0b111, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: None, scale: 1, disp: 0, res_size: op_size })),
-
-            ModRMByte { md: 0b01, rm: 0b000, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: Some(SI), scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b01, rm: 0b001, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: Some(DI), scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b01, rm: 0b010, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: Some(SI), scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b01, rm: 0b011, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: Some(DI), scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b01, rm: 0b100, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(SI), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b01, rm: 0b101, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(DI), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b01, rm: 0b110, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b01, rm: 0b111, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-
-            ModRMByte { md: 0b10, rm: 0b000, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: Some(SI), scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b10, rm: 0b001, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: Some(DI), scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b10, rm: 0b010, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: Some(SI), scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b10, rm: 0b011, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: Some(DI), scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b10, rm: 0b100, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(SI), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b10, rm: 0b101, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(DI), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b10, rm: 0b110, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BP), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-            ModRMByte { md: 0b10, rm: 0b111, .. } => Ok(Instruction_Operand::DREF(Dref { base: Some(BX), index: None, scale: 1, disp: bytes_to_int(reader.take_bytes(2)?), res_size: op_size })),
-
-            ModRMByte { md: 0b11, .. } => Ok(Instruction_Operand::REGISTER(op_reg)),
-            _ => Err(std::io::Error::from(std::io::ErrorKind::NotFound))
-        },
-
-        _ => match modrm
-        {
-            // Not supported
-            ModRMByte { md: 0b00, rm: 0b100, .. } => parse_sib_byte(reader, modrm, add_size, op_size, rex),
-            ModRMByte { md: 0b01, rm: 0b100, .. } => parse_sib_byte(reader, modrm, add_size, op_size, rex),
-            ModRMByte { md: 0b10, rm: 0b100, .. } => parse_sib_byte(reader, modrm, add_size, op_size, rex),
-
-            ModRMByte { md: 0b00, rm: 0b101, .. } => Ok(Instruction_Operand::DREF(Dref { base: None,          index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(4)?), res_size: op_size })),
-            ModRMByte { md: 0b00, .. }            => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: 0,                                   res_size: op_size })),
-
-            ModRMByte { md: 0b01, .. }            => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-            ModRMByte { md: 0b10, .. }            => Ok(Instruction_Operand::DREF(Dref { base: Some(add_reg), index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(4)?), res_size: op_size })),
-
-            ModRMByte { md: 0b11, .. }            => Ok(Instruction_Operand::REGISTER(op_reg)),
-
-
-            _ => Err(std::io::Error::from(std::io::ErrorKind::NotFound))
-        }
-    }
-}
-
-fn handle_modrm_operand(reader: &mut MyReader, mode: InstMode, op: Opcode_Operand_ModRM, modrm: &ModRMByte, opcode: u8, operand_override: bool, address_override: bool, rex: &Option<Rex_Prefix>, vex: &Option<Vex_Prefix>) -> std::io::Result<Option<Instruction_Operand>>
-{
-    let add_size = match (mode, address_override, rex) 
-    {
-        (InstMode::x64, true,  Some(Rex_Prefix { w: true, .. })) => Register_Size::_32,
-        (InstMode::x64, false, Some(Rex_Prefix { w: true, .. })) => Register_Size::_64,
-
-        (InstMode::x64, true,  Some(Rex_Prefix { w: false, .. })) | (InstMode::x64, true, None)  => Register_Size::_32,
-        (InstMode::x64, false, Some(Rex_Prefix { w: false, .. })) | (InstMode::x64, false, None) => Register_Size::_64,
-
-        (InstMode::x32, false, _) => Register_Size::_32,
-        (InstMode::x32, true,  _) => Register_Size::_16,
-    };
-
-    let v_op_size = match (mode, operand_override, rex) 
-    {
-        (_, _, Some(Rex_Prefix { .. })) => Register_Size::_64,
-        (_, false, None) => Register_Size::_32,
-        (_, true, None) => Register_Size::_16,
-    };
-
-    let z_size = match v_op_size
-    {
-        Register_Size::_16 => Register_Size::_16,
-        Register_Size::_32 | Register_Size::_64 => Register_Size::_32,
-        _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-    };
-
-    let d64_size = match (mode, operand_override, &rex)
-    {
-        (InstMode::x32, _, _) => v_op_size,
-        (InstMode::x64, true, _) => Register_Size::_16,
-        (InstMode::x64, false, _) => Register_Size::_64,
-    };
-
-    let y_size = match (mode, operand_override)
-    {
-        (InstMode::x32, _) => Register_Size::_32,
-        (InstMode::x64, true) => Register_Size::_32,
-        (InstMode::x64, false) => Register_Size::_64,
-    };
-
-    match op
-    {
-        Opcode_Operand_ModRM::Cd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::CON, Register_Size::_32, None)?))),
-        Opcode_Operand_ModRM::Dd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::DEB, Register_Size::_32, None)?))),
-        Opcode_Operand_ModRM::Rd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::GP,  Register_Size::_32, None)?))),
-
-        Opcode_Operand_ModRM::Ppi => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::MMX,  Register_Size::_64, None)?))),
-        Opcode_Operand_ModRM::Pq  => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::MMX,  Register_Size::_64, None)?))),
-        Opcode_Operand_ModRM::Pd  => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::MMX,  Register_Size::_64, None)?))),
-        
-        Opcode_Operand_ModRM::Nq => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::MMX,  Register_Size::_64, None)?))),
-
-        Opcode_Operand_ModRM::Qpi => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::MMX, &None)?)),
-        Opcode_Operand_ModRM::Qd => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::MMX, &None)?)),
-        Opcode_Operand_ModRM::Qq => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::MMX, &None)?)),
-
-        Opcode_Operand_ModRM::Eb =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_8, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Ev =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Ev_d64 => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, d64_size, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Ew =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Ey =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, y_size, Register_Type::GP, &rex)?)),
-
-        Opcode_Operand_ModRM::M  =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Ma =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Mp =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Mq =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &rex)?)),
-        Opcode_Operand_ModRM::Mx =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            Register_Size::_128,
-            Register_Type::XMM,
-            &None).unwrap()
-        )),
-
-        Opcode_Operand_ModRM::My =>    Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, 
-            match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            },
-            &None).unwrap()
-        )),
-
-        Opcode_Operand_ModRM::Mps =>    Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, 
-            match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            },
-            &None).unwrap()
-        )),
-
-        Opcode_Operand_ModRM::Mpd =>     Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, 
-            match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            },
-            &None).unwrap()
-        )),
-
-        Opcode_Operand_ModRM::Sw => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::SEG, Register_Size::_16, match rex {
-            Some (r) => Some(r.r),
-            _ => None
-        })?))),
-
-        Opcode_Operand_ModRM::Gb => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_8, match rex {
-            Some (r) => Some(r.r),
-            _ => None
-        })?))),
-
-        Opcode_Operand_ModRM::Gv => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, v_op_size, match rex {
-            Some (r) => Some(r.r),
-            _ => None
-        })?))),
-
-        Opcode_Operand_ModRM::Gw => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_16, match rex {
-            Some (r) => Some(r.r),
-            _ => None
-        })?))),
-
-        Opcode_Operand_ModRM::Gz => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, z_size, match rex {
-            Some (r) => Some(r.r),
-            _ => None
-        })?))),
-
-        Opcode_Operand_ModRM::Gy => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, y_size, match rex {
-            Some (r) => Some(r.r),
-            _ => None
-        })?))),
-
-        Opcode_Operand_ModRM::Gd => Ok(Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::GP, Register_Size::_32, match rex {
-            Some (r) => Some(r.r),
-            _ => None
-        })?))),
-
-        Opcode_Operand_ModRM::FLOAT_Single_Real => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, Register_Type::GP, &None)?)),
-
-        // 16 means 14 and 32 means 28 FPU environment
-        Opcode_Operand_ModRM::FLOAT_14_28_byte => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &None)?)),
-
-        Opcode_Operand_ModRM::FLOAT_2_byte => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, Register_Type::GP, &None)?)),
-
-        Opcode_Operand_ModRM::FLOAT_DWORD_INTEGER => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, Register_Type::GP, &None)?)),
-        Opcode_Operand_ModRM::FLOAT_DOUBLE_REAL =>   Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::GP, &None)?)),
-        Opcode_Operand_ModRM::FLOAT_98_108_byte =>   Ok(Some(lookup_32_effective_address(reader, modrm, add_size, v_op_size, Register_Type::GP, &None)?)),
-        Opcode_Operand_ModRM::FLOAT_WORD_INTEGER =>  Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_16, Register_Type::GP, &None)?)),
-        Opcode_Operand_ModRM::FLOAT_PACKED_BCD =>    Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_32, Register_Type::GP, &None)?)),
-        Opcode_Operand_ModRM::FLOAT_QUAD_INTEGER =>  Ok(Some(lookup_32_effective_address(reader, modrm, add_size, Register_Size::_64, Register_Type::GP, &None)?)),
-
-        Opcode_Operand_ModRM::Hx => Ok(
-        match vex {
-            Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, match vex.vector_length {
-                Vector_Length::_128 => Register_Type::XMM,
-                Vector_Length::_256 => Register_Type::YMM,
-            }, match vex.vector_length {
-                Vector_Length::_128 => Register_Size::_128,
-                Vector_Length::_256 => Register_Size::_256,
-            }, None).unwrap())),
-
-            None => None,
-        }),
-
-        Opcode_Operand_ModRM::Hss => Ok(
-            match vex {
-                Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-                None => None
-            }
-        ),
-
-        Opcode_Operand_ModRM::Hsd => Ok(
-            match vex {
-                Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-                None => None
-            }
-        ),
-
-        Opcode_Operand_ModRM::Hq => Ok(
-            match vex {
-                Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-                None => None
-            }
-        ),
-
-        Opcode_Operand_ModRM::Hps => Ok(
-        match vex {
-            Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, match vex.vector_length {
-                Vector_Length::_128 => Register_Type::XMM,
-                Vector_Length::_256 => Register_Type::YMM,
-            }, match vex.vector_length {
-                Vector_Length::_128 => Register_Size::_128,
-                Vector_Length::_256 => Register_Size::_256,
-            }, None).unwrap())),
-
-            None => None,
-        }),
-
-        Opcode_Operand_ModRM::Hpd => Ok(
-        match vex {
-            Some(vex) => Some(Instruction_Operand::REGISTER(search_register(vex.v_reg, match vex.vector_length {
-                Vector_Length::_128 => Register_Type::XMM,
-                Vector_Length::_256 => Register_Type::YMM,
-            }, match vex.vector_length {
-                Vector_Length::_128 => Register_Size::_128,
-                Vector_Length::_256 => Register_Size::_256,
-            }, None).unwrap())),
-
-            None => None,
-        }),
-
-        Opcode_Operand_ModRM::Vx => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op,
-                match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, None).unwrap()))
-        ),
-
-        Opcode_Operand_ModRM::Vss => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-        ),
-
-        Opcode_Operand_ModRM::Vsd => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-        ),
-
-        Opcode_Operand_ModRM::Vq => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-        ),
-
-        Opcode_Operand_ModRM::Vps => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, 
-                match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, None).unwrap()))
-        ),
-
-        Opcode_Operand_ModRM::Vpd => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, 
-                match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            },
-
-            None
-        ).unwrap()))),
-
-        Opcode_Operand_ModRM::Vdq => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-        ),
-
-        Opcode_Operand_ModRM::Vy => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.reg_op, 
-            match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            },
-
-            None
-        ).unwrap()))),
-
-        Opcode_Operand_ModRM::Wx => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-    match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            },
-            match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, 
-            &None)?
-        )),
-
-        Opcode_Operand_ModRM::Wps => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-    match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            },
-            match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, 
-            &None)?
-        )),
-
-        Opcode_Operand_ModRM::Wss => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            Register_Size::_128,
-            Register_Type::XMM,
-            &None)?
-        )),
-
-        Opcode_Operand_ModRM::Wsd => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            Register_Size::_128,
-            Register_Type::XMM,
-            &None)?
-        )),
-
-        Opcode_Operand_ModRM::Wpd => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-    match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            },
-            match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, 
-            &None)?
-        )),
-
-        Opcode_Operand_ModRM::Wq => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            Register_Size::_128,
-            Register_Type::XMM,
-            &None)?
-        )),
-
-        Opcode_Operand_ModRM::Wdq => Ok(Some(lookup_32_effective_address(reader, modrm, add_size, 
-            Register_Size::_128,
-            Register_Type::XMM,
-            &None)?
-        )),
-
-        Opcode_Operand_ModRM::Ux => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.rm,
-                match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, None).unwrap()))
-        ),
-
-        Opcode_Operand_ModRM::Ups => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, 
-                match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, None).unwrap()))
-        ),
-
-        Opcode_Operand_ModRM::Upd => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, 
-                match operand_override {
-                true => Register_Type::XMM,
-                false => Register_Type::YMM,
-            }, match operand_override {
-                true => Register_Size::_128,
-                false => Register_Size::_256,
-            }, None).unwrap()))
-        ),
-
-        Opcode_Operand_ModRM::Uq => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-        ),
-
-        Opcode_Operand_ModRM::Udq => Ok(
-            Some(Instruction_Operand::REGISTER(search_register(modrm.rm, Register_Type::XMM, Register_Size::_128, None).unwrap())),
-        ),
-    }
-}
-
-fn read_inst(mode: InstMode, reader: &mut MyReader) -> std::io::Result<Instruction>
-{
-    let inst_prefix: Inst_Prefix = {
-        let mut prefix = Prefix_Acc {
-            group1: None,
-            group2: None,
-            group3: None,
-            group4: None,
-        };
-
-        // TODO account for multiple prefix error here
-        // Collect the prefix bytes
-        while prefix.add_prefix(reader.peek_byte()?).is_ok() {
-            reader.take_byte()?;
-        };
-
-        match reader.peek_byte()?
-        {
-            0xc4 => {
-                reader.take_byte()?;
-                parse_vex_prefix_two_byte(reader.take_byte()?, prefix)?
-            }
-
-            0xc5 => {
-                reader.take_byte()?;
-                parse_vex_prefix_three_byte(reader.take_byte()?, reader.take_byte()?, prefix)?
-            }
-
-            _ => {
-                // Read the (possible) rex prefix
-                let rex = match parse_rex_prefix(reader.peek_byte()?)
-                {
-                    Some (rex) => {
-                        reader.take_byte()?;
-                        Some(rex)
-                    },
-
-                    None  => None
-                };
-
-                let opcode_map = match reader.peek_byte()?
-                {
-                    0x0F => {
-                        reader.take_byte()?;
-                        match reader.peek_byte()?
-                        {
-                            0x38 => {
-                                reader.take_byte()?;
-                                Opcode_Map::THREE_BYTE_38
-                            },
-
-                            0x3A => {
-                                reader.take_byte()?;
-                                Opcode_Map::THREE_BYTE_3A
-                            },
-
-                            _    => Opcode_Map::TWO_BYTE
-                        }
-                    },
-
-                    _ => Opcode_Map::ONE_BYTE,
-                };
-
-                Inst_Prefix {
-                    prefixes: prefix,
-                    rex: rex,
-                    vex: None,
-                    opcode_map: opcode_map,
-                }
-            }
-        }
-    };
-
-    let opcode: u8 = reader.take_byte()?;
-    let operand_override = match inst_prefix.prefixes.group3 {
-        Some(Prefix_Group3::Operand_Override_66) => true,
-        _ => false,
-    };
-    let address_override = match inst_prefix.prefixes.group4 {
-        Some(Prefix_Group4::Address_Override_67) => true,
-        _ => false,
-    };
-
-    let (res, mut mod_rm_byte) : (Opcode_Table_Result, Option<ModRMByte>) = {
-        // hypothetical ModRMByte. Needed for AVX instruction to check if using register or memory
-        // operation. (0x02: vmovlps and vmovhlps, cause this)
-        let test_mod_rm_byte: Option<ModRMByte> = match reader.peek_byte()
-        {
-            Ok(val) => Some(ModRMByte::new(val)),
-            Err(..) => None
-        };
-
-        let rex_w = match inst_prefix.rex {
-            Some(rex) => rex.w,
-            _ => false,
-        };
-
-        match inst_prefix.opcode_map {
-            Opcode_Map::ONE_BYTE => {
-                if let Some(inst) = search_opcode_one_byte(opcode, mode, operand_override, address_override, rex_w) {
-                    // take the modrm byte if it was used
-                    (inst, 
-                        match inst.operands.iter().any(|&x| match x { Some(Opcode_Operand::MODRM_BYTE(..)) => true, _ => false })
-                        {
-                            true  => { reader.take_byte()?; test_mod_rm_byte },
-                            false => None,
-                        })
-                } else if let Some(inst) = search_opcode_one_byte_extention(mode, opcode, test_mod_rm_byte.as_ref().unwrap()) {
-                    // take the modrm byte since it is required
-                    reader.take_byte()?;
-                    (inst, test_mod_rm_byte)
-                } else if let Some(inst) = search_opcode_one_byte_float(mode, opcode, test_mod_rm_byte.as_ref().unwrap()) {
-                    // take the modrm byte since it is required
-                    reader.take_byte()?;
-                    (inst, test_mod_rm_byte)
-                } else {
-                    return Err(std::io::Error::from(std::io::ErrorKind::NotFound));
-                }
-            }
-
-            Opcode_Map::TWO_BYTE => {
-                if let Some(inst) = search_opcode_two_byte(opcode, mode, &inst_prefix, test_mod_rm_byte.as_ref().unwrap(), rex_w) {
-                    (inst, 
-                        match inst.operands.iter().any(|&x| match x { Some(Opcode_Operand::MODRM_BYTE(..)) => true, _ => false })
-                        {
-                            true  => { reader.take_byte()?; test_mod_rm_byte },
-                            false => None,
-                        })
-                } else {
-                    return Err(std::io::Error::from(std::io::ErrorKind::NotFound));
-                }
-            },
-
-            _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-        }
-
-        // match search_opcode_one_byte(opcode, mode, operand_override, address_override, rex_w)
-        // {
-        //     None =>
-        //     {
-        //         match search_opcode_one_byte_extention(mode, opcode, test_mod_rm_byte.as_ref().unwrap())
-        //         {
-        //             // Here, the ModRM byte is required, thus it must exist and the byte is claimed
-        //             Some (ins) => {reader.take_byte()?; (ins, test_mod_rm_byte)},
-        //             None => match search_opcode_one_byte_float(mode, opcode, test_mod_rm_byte.as_ref().unwrap())
-        //             {
-        //                 // these floating point instructions all have a modrm byte
-        //                 Some (ins) => {reader.take_byte()?; (ins, test_mod_rm_byte)},
-        //                 None => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-        //             }
-        //         }
-        //     }
-
-        //     // finalize the modrm optional by checking if any operand ended up needing it. If not, make it None.
-        //     // If any operand ended up needing the ModRM, claim the byte in the byte stream
-        //     Some(res) => (res, 
-        //         match res.operands.iter().any(|&x| match x { Some(Opcode_Operand::MODRM_BYTE(..)) => true, _ => false })
-        //         {
-        //             true  => { reader.take_byte()?; test_mod_rm_byte },
-        //             false => None,
-        //         }
-        //     ),
-        // }
-    };
-
-    let mut operands: [Option<Instruction_Operand>; 4] = [None, None, None, None];
-
-    // parse the MODRM byte operands first
-    for i in 0..4
-    {
-        match res.operands[i]
-        {
-            Some(Opcode_Operand::MODRM_BYTE(op)) => 
-            {
-                if mod_rm_byte.is_none()
-                {
-                    mod_rm_byte = Some(ModRMByte::new(reader.take_byte()?));
-                }
-
-                operands[i] = handle_modrm_operand(reader, mode, op, mod_rm_byte.as_ref().unwrap(), opcode, operand_override, address_override, &inst_prefix.rex, &inst_prefix.vex)?
-            }
-            
-            _ => ()
-        }
-    }
-
-    for i in 0..4
-    {
-        match res.operands[i]
-        {
-            Some(Opcode_Operand::DIS_BYTES(op)) => 
-            {
-                let op_size = match (mode, operand_override, &inst_prefix.rex) 
-                {
-                    (_, _, Some(Rex_Prefix { .. })) => Register_Size::_64,
-                    (_, false, None) => Register_Size::_32,
-                    (_, true, None) => Register_Size::_16,
-                };
-
-                // let add_size = match (mode, address_override, &inst_prefix.rex) 
-                // {
-                //     (InstMode::x64, true,  Some(Rex_Prefix { w: true, .. })) => Register_Size::_32,
-                //     (InstMode::x64, false, Some(Rex_Prefix { w: true, .. })) => Register_Size::_64,
-
-                //     (InstMode::x64, true,  Some(Rex_Prefix { w: false, .. })) | (InstMode::x64, true, None)  => Register_Size::_32,
-                //     (InstMode::x64, false, Some(Rex_Prefix { w: false, .. })) | (InstMode::x64, false, None) => Register_Size::_64,
-
-                //     (InstMode::x32, false, _) => Register_Size::_32,
-                //     (InstMode::x32, true,  _) => Register_Size::_16,
-                // };
-
-                match op
-                {
-                    Opcode_Operand_Dis::Jb => operands[i] = Some(Instruction_Operand::IMM_8(bytes_to_int(reader.take_bytes(1)?) as i8)),
-                    Opcode_Operand_Dis::Jz => operands[i] = Some(
-                    match op_size
-                    {
-                        Register_Size::_64 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
-                        Register_Size::_32 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
-                        Register_Size::_16 => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
-                        _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-                    }),
-
-                    Opcode_Operand_Dis::Ob => operands[i] = Some(Instruction_Operand::DREF(Dref { base: None, index: None, scale: 0, disp: bytes_to_int(reader.take_bytes(1)?), res_size: op_size })),
-                    Opcode_Operand_Dis::Ov => operands[i] = Some(Instruction_Operand::DREF(Dref { base: None, index: None, scale: 0, disp: 
-                        match op_size
-                        {
-                            Register_Size::_64 => bytes_to_int(reader.take_bytes(8)?),
-                            Register_Size::_32 => bytes_to_int(reader.take_bytes(4)?),
-                            Register_Size::_16 => bytes_to_int(reader.take_bytes(2)?),
-                            _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-                        }, res_size: op_size })),
-
-                    _ => ()
-                }
-            }
-            
-            _ => ()
-        }
-    }
-
-    for i in 0..4
-    {
-        match res.operands[i]
-        {
-            Some(Opcode_Operand::IMM_BYTES(imm)) => 
-            {
-                let op_size = match (mode, operand_override, &inst_prefix.rex) 
-                {
-                    (_, _, Some(Rex_Prefix { .. })) => Register_Size::_64,
-                    (_, false, None) => Register_Size::_32,
-                    (_, true, None) => Register_Size::_16,
-                };
-
-                operands[i] = Some(match imm 
-                {
-                    Opcode_Operand_Imm::Ib => Instruction_Operand::IMM_8(bytes_to_int(reader.take_bytes(1)?) as i8),
-                    Opcode_Operand_Imm::Iw => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
-
-                    Opcode_Operand_Imm::Iv => {
-                        match op_size
-                        {
-                            Register_Size::_64 => Instruction_Operand::IMM_64(bytes_to_int(reader.take_bytes(8)?) as i64),
-                            Register_Size::_32 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
-                            Register_Size::_16 => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
-                            _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-                        }
-                    },
-
-                    Opcode_Operand_Imm::Iz => 
-                    {
-                        match op_size
-                        {
-                            Register_Size::_64 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
-                            Register_Size::_32 => Instruction_Operand::IMM_32(bytes_to_int(reader.take_bytes(4)?) as i32),
-                            Register_Size::_16 => Instruction_Operand::IMM_16(bytes_to_int(reader.take_bytes(2)?) as i16),
-                            _ => { return Err(std::io::Error::from(std::io::ErrorKind::NotFound)); }
-                        }
-                    },
-                });
-            }
-            
-            _ => ()
-        }
-    }
-
-    for i in 0..4
-    {
-        let op_size = match (mode, operand_override, &inst_prefix.rex) 
-        {
-            (_, _, Some(Rex_Prefix { .. })) => Register_Size::_64,
-            (_, false, None) => Register_Size::_32,
-            (_, true, None) => Register_Size::_16,
-        };
-
-        let d64_size = match (mode, operand_override, &inst_prefix.rex)
-        {
-            (InstMode::x32, _, _) => op_size,
-            (InstMode::x64, true, _) => Register_Size::_16,
-            (InstMode::x64, false, _) => Register_Size::_64,
-        };
-
-        match res.operands[i]
-        {
-            Some(Opcode_Operand::REGISTER(r)) => operands[i] = Some(Instruction_Operand::REGISTER(r)),
-            Some(Opcode_Operand::REGISTER_UNSIZED(reg)) => operands[i] = Some(Instruction_Operand::REGISTER(size_register(reg, op_size).unwrap())),
-            Some(Opcode_Operand::REGISTER_REX_PAIR((r1, r2))) =>
-            {
-                let r = match inst_prefix.rex.as_ref()
-                {
-                    Some (Rex_Prefix { b: true, .. }) => r2,
-                    _ => r1,
-                };
-
-                match r
-                {
-                    Register_Known_Or_Unsized::KNOWN(reg) => operands[i] = Some(Instruction_Operand::REGISTER(reg)),
-                    Register_Known_Or_Unsized::UNSIZED(reg) => operands[i] = Some(Instruction_Operand::REGISTER(size_register(reg, op_size).unwrap())),
-                    Register_Known_Or_Unsized::UNSIZED_d64(reg) => operands[i] = Some(Instruction_Operand::REGISTER(size_register(reg, d64_size).unwrap())),
-                };
-            }
-
-            Some(Opcode_Operand::Yv) => operands[i] = Some(Instruction_Operand::DREF(Dref { 
-                base: Some(size_register(Register_Unsized::eDI, op_size)?), 
-                index: None, 
-                scale: 1, 
-                disp: 0, 
-                res_size: op_size,
-            })),
-
-            Some(Opcode_Operand::Yb) => operands[i] = Some(Instruction_Operand::DREF(Dref { 
-                base: Some(size_register(Register_Unsized::eDI, op_size)?), 
-                index: None, 
-                scale: 1, 
-                disp: 0, 
-                res_size: Register_Size::_8,
-            })),
-
-            Some(Opcode_Operand::IMM_BYTES(..)) => (),
-            Some(Opcode_Operand::MODRM_BYTE(..)) => (),
-            Some(Opcode_Operand::DIS_BYTES(..)) => (),
-            None => (),
-
-            _ => (),
-        }
-    }
-
-    let mut write_index = 0;
-    for read_index in 0..operands.len() {
-        if let Some(val) = operands[read_index] {
-            operands[write_index] = Some(val);
-            if write_index != read_index {
-                operands[read_index] = None;
-            }
-            write_index += 1;
-        }
-    }
-
-    return Ok(Instruction { name: res.instruction, operands });
-}
-
-#[derive(Debug)]
-enum Endian
-{
-    BIG,
-    LITTLE,
-}
-
-#[derive(Debug)]
-#[allow(non_camel_case_types)]
-enum File_Type
-{
-    ET_NONE,
-    ET_REL,
-    ET_EXEC,
-    ET_DYN,
-    ET_CORE,
-    ET_LOOS,
-    ET_HIOS,
-    ET_LOPROC,
-    ET_HIPROC,
-}
-
-#[derive(Debug)]
-struct FileMetadata
-{
-    inst_mode: InstMode,
-    endian: Endian,
-    file_type: File_Type,
-
-    exec_entry_off: usize,
-
-    segment_header_table_off: usize,
-    segment_header_table_entry_count: usize,
-    segment_header_table_entry_len: usize,
-
-    section_header_table_off: usize,
-    section_header_table_entry_count: usize,
-    section_header_table_entry_len: usize,
-    section_header_table_name_idx: usize,
-}
-
-#[derive(Debug)]
-#[allow(non_camel_case_types)]
-enum SectionType
-{
-    NULL,
-    PROGBITS,
-    SYMTAB,
-    STRTAB,
-    RELA,
-    HASH,
-    DYNAMIC,
-    NOTE,  
-    NOBITS,
-    REL,
-    SHLIB,
-    DYNSYM,
-    INIT_ARRAY,
-    FINI_ARRAY,
-    PREINIT_ARRAY,
-    GROUP,
-    SYMTAB_SHNDX,
-    NUM,
-}
-
-#[derive(Debug)]
-enum SectionAttribute
-{
-    WRITE,
-    ALLOC,
-    EXEC,
-    MERGE,
-    STRINGS,
-}
-
-#[derive(Debug)]
-struct SectionHeader
-{
-    name_off: usize,
-    ty: SectionType,
-    attributes: Vec<SectionAttribute>,
-    virt_addr: usize,
-    section_off: usize,
-    section_size: usize,
-    link: usize,
-    info: usize,
-    addralign: usize,
-}
-
-#[derive(Debug)]
-enum SegmentType
-{
-    NULL,
-    LOAD,
-    DYNAMIC,
-    INTERP,
-    AUX,
-    SHLIB,
-    PHDR,
-    TLS,
-}
-
-#[derive(Debug)]
-enum SegmentFlag
-{
-    EXEC,
-    WRITE,
-    READ,
-}
-
-#[derive(Debug)]
-struct SegmentHeader
-{
-    ty: SegmentType,
-    flags: Vec<SegmentFlag>,
-    off: usize,
-    virt_addr: usize,
-    file_size: usize,
-    mem_size: usize,
-}
-
-fn parse_elf_header(reader: &mut MyReader) -> std::io::Result<FileMetadata>
-{
-    let inst_mode = match reader.seek(0x04)?.take_byte()?
-    {
-        1 => InstMode::x32,
-        2 => InstMode::x64,
-        v => panic!("Unexpected instruction mode value! {}", v),
-    };
-
-    Ok(FileMetadata {
-        inst_mode: inst_mode,
-
-        endian: match reader.seek(0x05)?.take_byte()?
-        {
-            1 => Endian::LITTLE,
-            2 => Endian::BIG,
-            _ => panic!("Unexpected endian value!"),
-        },
-
-        file_type: match bytes_to_int(reader.seek(0x10)?.take_bytes(2)?)
-        {
-            0x0000 => File_Type::ET_NONE,
-            0x0001 => File_Type::ET_REL,
-            0x0002 => File_Type::ET_EXEC,
-            0x0003 => File_Type::ET_DYN,
-            0x0004 => File_Type::ET_CORE,
-            0xFE00 => File_Type::ET_LOOS,
-            0xFEFF => File_Type::ET_HIOS,
-            0xFF00 => File_Type::ET_LOPROC,
-            0xFFFF => File_Type::ET_HIPROC,
-            _ => panic!("Unexpected file type value!"),
-        },
-
-        exec_entry_off: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x18)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x18)?.take_bytes(8)?) as usize,
-        },
-
-        segment_header_table_off: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x1C)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x20)?.take_bytes(8)?) as usize,
-        },
-
-        segment_header_table_entry_len: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x2A)?.take_bytes(2)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x36)?.take_bytes(2)?) as usize,
-        },
-
-        segment_header_table_entry_count: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x2C)?.take_bytes(2)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x38)?.take_bytes(2)?) as usize,
-        },
-
-        section_header_table_off: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x20)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x28)?.take_bytes(8)?) as usize,
-        },
-
-        section_header_table_entry_count: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x30)?.take_bytes(2)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x3C)?.take_bytes(2)?) as usize,
-        },
-
-        section_header_table_entry_len: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x2E)?.take_bytes(2)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x3A)?.take_bytes(2)?) as usize,
-        },
-
-        section_header_table_name_idx: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(0x32)?.take_bytes(2)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(0x3E)?.take_bytes(2)?) as usize,
-        },
-    })
-}
-
-fn parse_elf_segment_header(reader: &mut MyReader, section_off: usize, inst_mode: InstMode) -> std::io::Result<SegmentHeader>
-{
-    let flag_data = match inst_mode
-    {
-        InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x18)?.take_bytes(4)?) as usize,
-        InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x04)?.take_bytes(4)?) as usize,
-    };
-
-    let mut flags = Vec::<SegmentFlag>::new();
-    {
-        if flag_data & 0x01 > 0
-        {
-            flags.push(SegmentFlag::EXEC);
-        }
-
-        if flag_data & 0x02 > 0
-        {
-            flags.push(SegmentFlag::WRITE);
-        }
-
-        if flag_data & 0x04 > 0
-        {
-            flags.push(SegmentFlag::READ);
-        }
-    }
-
-    Ok(SegmentHeader
-    {
-        ty: match bytes_to_int(reader.seek(section_off + 0x00)?.take_bytes(4)?) as usize
-        {
-            0x00 => SegmentType::NULL,
-            0x01 => SegmentType::LOAD,
-            0x02 => SegmentType::DYNAMIC,
-            0x03 => SegmentType::INTERP,
-            0x05 => SegmentType::SHLIB,
-            0x06 => SegmentType::PHDR,
-            val => panic!("unexpected segment type val {}", val)
-        },
-
-        flags: flags,
-
-        off: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x04)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x04)?.take_bytes(4)?) as usize,
-        },
-
-        virt_addr: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x08)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x10)?.take_bytes(8)?) as usize,
-        },
-
-        file_size: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x10)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x20)?.take_bytes(8)?) as usize,
-        },
-        
-        mem_size: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x14)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x28)?.take_bytes(8)?) as usize,
-        },
-    })
-}
-
-fn parse_elf_section_header(reader: &mut MyReader, section_off: usize, inst_mode: InstMode) -> std::io::Result<SectionHeader>
-{
-    let mut atts = Vec::<SectionAttribute>::new();
-    {
-        let att_data = match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x08)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x08)?.take_bytes(8)?) as usize,
-        };
-
-        if att_data & 0x001 > 0
-        {
-            atts.push(SectionAttribute::WRITE);
-        }
-
-        if att_data & 0x002 > 0
-        {
-            atts.push(SectionAttribute::ALLOC);
-        }
-
-        if att_data & 0x004 > 0
-        {
-            atts.push(SectionAttribute::EXEC);
-        }
-
-        if att_data & 0x010 > 0
-        {
-            atts.push(SectionAttribute::MERGE);
-        }
-
-        if att_data & 0x020 > 0
-        {
-            atts.push(SectionAttribute::STRINGS);
-        }
-    }
-
-    Ok(SectionHeader
-    {
-        name_off: bytes_to_int(reader.seek(section_off + 0x00)?.take_bytes(4)?) as usize,
-        ty: match bytes_to_int(reader.seek(section_off + 0x04)?.take_bytes(4)?) as usize
-        {
-            0x00 => SectionType::NULL,
-            0x01 => SectionType::PROGBITS,
-            0x02 => SectionType::SYMTAB,
-            0x03 => SectionType::STRTAB,
-            0x04 => SectionType::RELA,
-            0x05 => SectionType::HASH,
-            0x06 => SectionType::DYNAMIC,
-            0x07 => SectionType::NOTE,
-            0x08 => SectionType::NOBITS,
-            0x09 => SectionType::REL,
-            0x0A => SectionType::SHLIB,
-            0x0B => SectionType::DYNSYM,
-            0x0E => SectionType::INIT_ARRAY,
-            0x0F => SectionType::FINI_ARRAY,
-            0x10 => SectionType::PREINIT_ARRAY,
-            0x11 => SectionType::GROUP,
-            0x12 => SectionType::SYMTAB_SHNDX,
-            0x13 => SectionType::NUM,
-            val => panic!("Unexpected Section Type: {}", val),
-        },
-
-        attributes: atts,
-
-        virt_addr: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x0C)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x10)?.take_bytes(8)?) as usize,
-        },
-
-        section_off: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x10)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x18)?.take_bytes(8)?) as usize,
-        },
-
-        section_size: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x14)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x20)?.take_bytes(8)?) as usize,
-        },
-
-        link: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x18)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x28)?.take_bytes(4)?) as usize,
-        },
-
-        info: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x1C)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x2C)?.take_bytes(4)?) as usize,
-        },
-
-        addralign: match inst_mode
-        {
-            InstMode::x32 => bytes_to_int(reader.seek(section_off + 0x20)?.take_bytes(4)?) as usize,
-            InstMode::x64 => bytes_to_int(reader.seek(section_off + 0x30)?.take_bytes(8)?) as usize,
-        },
-    })
-}
-
-fn read_string_from_table(reader: &mut MyReader, table_off: usize, name_off: usize) -> String
-{
-    let mut s: String = String::new();
-    let mut idx = table_off + name_off;
-    loop 
-    {
-        let c = reader.seek(idx).unwrap().take_byte().unwrap() as char;
-        if c == '\0'
-        {
-            break;
-        }
-
-        s.push(c);
-        idx += 1;
-    }
-
-    return s;
-}
 
 fn main() -> std::io::Result<()>
 {
@@ -1758,33 +120,332 @@ fn main() -> std::io::Result<()>
     // }
 
     //*********** WINDOWS PE FILE ***********//
-    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.push("res/test.exe");
+    // let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    // d.push("res/test.exe");
+
+    // let (exe, mut reader) = parse_windows_exe("C:\\Users\\samse\\source\\repos\\TestBinary\\Release\\TestBinary.exe".into()).unwrap();
+    let (exe, mut reader) = parse_windows_exe("C:\\Users\\samse\\source\\repos\\TestBinary3\\Release\\TestBinary3.exe".into()).unwrap();
+
     let text_section = exe.section_headers.get(TEXT_SECTION).unwrap();
 
     println!("{:#x?}", exe.optional_header.entry_point_offset);
 
     // TODO: actually get the entry point by analyzing scrt_common_main
-    let entry = 0x40;
-
-    reader.seek((text_section.data_offset + entry) as usize)?;
-    let mut insts =  Vec::new();
-    loop {
-
+    reader.seek((text_section.data_offset) as usize)?;
+    let mut insts =  BTreeMap::new();
+    while reader.cursor < (text_section.data_offset + text_section.data_length) as usize {
+        let pos = reader.cursor;
         let inst = read_inst(InstMode::x32, &mut reader);
         if let Ok(inst) = inst {
-            if inst.name == Instruction_Name::far_Ret || inst.name == Instruction_Name::near_Ret {
-                insts.push(inst);
-                break;
-            } else {
-                insts.push(inst);
-            }
+            // if inst.name == Instruction_Name::far_Ret || inst.name == Instruction_Name::near_Ret {
+                insts.insert(pos as i64, inst);
+            //     break;
+            // } else {
+            //     insts.insert(pos as u32, inst);
+            // }
+        } else {
+            reader.seek(pos)?;
+            reader.take_byte()?;
         }
     }
 
-    for inst in insts {
-        println!("{:#?}", inst);
+    // for (pc, inst) in insts.iter() {
+    //     println!("{:?}", inst);
+    // }
+
+
+    let program = 
+        Program {
+            insts,
+            text_offset: text_section.data_offset as i64,
+        };
+
+    let pass1_blocks = pass_1_identify_blocks(
+        &program,
+        text_section.data_offset as i64 + 0x40,
+        // text_section.data_offset as i64 + 0x30,
+        // &mut pass1_funcs,
+    );
+
+    println!("{:x?}", pass1_blocks);
+    use std::ops::Bound::Included;
+    use std::ops::Bound::Excluded;
+    for (pc, inst) in program.insts.range((Included((text_section.data_offset as i64 + 0x40)), Excluded(pass1_blocks.blocks.iter().rev().next().unwrap().1.end))) {
+        println!("{:x?}", inst);
     }
+
+    let mut pass_3_vars = Pass3_VariableRegistry::default();
+    let func = pass_3_generate_virtual_env_cmds(&program, &pass1_blocks, &mut pass_3_vars);
+
+    for (_, block) in &pass1_blocks.blocks {
+        println!("-------------------");
+        println!("Block_{:x}:", block.id);
+        println!("Variables:");
+
+        if let Some(vars) = pass_3_vars.block_vars.get(&block.id) {
+            for var_id in vars {
+                println!("ID: {:x}", var_id);
+                println!("{:#x?}", pass_3_vars.get_var(*var_id));
+                println!();
+            }
+        }
+
+        println!("Code:");
+        for (pc, statement) in func.bytecode.range((
+            Included(block.entry), 
+            Excluded(block.end))
+        ) {
+            println!("{:#x?}", statement);
+        }
+        
+        println!();
+    }
+    
+    println!("------------------------------------------------");
+    for (_, block) in &pass1_blocks.blocks {
+        println!("-------------------");
+        println!("Block_{:x}:", block.id);
+
+        if let Some(vars) = pass_3_vars.block_vars.get(&block.id) {
+            let mut any_phi = false;
+            for var_id in vars {
+                let var = pass_3_vars.get_var(*var_id);
+                if var.phi.len() > 0 {
+                    any_phi = true;
+
+                    print!("\tint var_{:x} = phi(", var_id);
+                    let mut count = 0;
+                    for phi_var_id in &var.phi {
+                        if count == var.phi.len() - 1 {
+                            println!("var_{:x});", phi_var_id);
+                        } else {
+                            print!("var_{:x}, ", phi_var_id);
+                        }
+
+                        count += 1;
+                    }
+                }
+            }
+
+            if any_phi {
+                println!();
+            }
+        }
+
+        if let Some(vars) = pass_3_vars.block_vars.get(&block.id) {
+            let mut any_vals = false;
+            for var_id in vars {
+                let var = pass_3_vars.get_var(*var_id);
+                if var.val.is_some() {
+                    any_vals = true;
+
+                    println!("\tint var_{:x} = {};", var_id, var.val.unwrap());
+                }
+            }
+
+            if any_vals {
+                println!();
+            }
+        }
+
+        // println!("Code:");
+        for (pc, statement) in func.bytecode.range((
+            Included(block.entry), 
+            Excluded(block.end))
+        ) {
+            match statement {
+                // Statement::SET(var_id, value) => {
+                //     println!("\tint var_{} = {};", var_id, value);
+                // }
+                Statement::ADD(dst_var_id, var_a_id, var_b_id) => {
+                    println!("\tint var_{:x} = var_{:x} + var_{:x};", dst_var_id, var_a_id, var_b_id);
+                }
+                Statement::MUL(dst_var_id, var_a_id, var_b_id) => {
+                    println!("\tint var_{:x} = var_{:x} * var_{:x};", dst_var_id, var_a_id, var_b_id);
+                }
+                Statement::SUB(dst_var_id, var_a_id, var_b_id) => {
+                    println!("\tint var_{:x} = var_{:x} - var_{:x};", dst_var_id, var_a_id, var_b_id);
+                }
+                Statement::SHR(dst_var_id, var_a_id, var_b_id) => {
+                    println!("\tint var_{:x} = var_{:x} >> var_{:x};", dst_var_id, var_a_id, var_b_id);
+                }
+                Statement::INC(dst_var_id, var_a_id) => {
+                    println!("\tint var_{:x} = var_{:x} + 1;", dst_var_id, var_a_id);
+                }
+                Statement::RET => {
+                    println!("\treturn;")
+                }
+
+                Statement::CMP(var_a_id, var_b_id) => {
+                    println!("\tcmp(var_{:x}, var_{:x});", var_a_id, var_b_id);
+                }
+
+                Statement::TEST(var_a_id, var_b_id) => {
+                    println!("\ttest(var_{:x}, var_{:x});", var_a_id, var_b_id);
+                }
+
+                Statement::JLE(block_true_id, block_false_id) => {
+                    println!("\tjle(block_{:x}, block_{:x});", block_true_id, block_false_id);
+                }
+
+                Statement::JL(block_true_id, block_false_id) => {
+                    println!("\tjl(block_{:x}, block_{:x});", block_true_id, block_false_id);
+                }
+
+                Statement::JZ(block_true_id, block_false_id) => {
+                    println!("\tjz(block_{:x}, block_{:x});", block_true_id, block_false_id);
+                }
+
+                Statement::JNZ(block_true_id, block_false_id) => {
+                    println!("\tjnz(block_{:x}, block_{:x});", block_true_id, block_false_id);
+                }
+                _ => {}
+            }
+        }
+        
+        println!();
+    }
+
+
+    // let mut function_registry = FunctionRegistry {
+    //     funcs: BTreeMap::new(),
+    //     next_func_id: 0,
+    // };
+
+    // let mut variable_registry = VariableRegistry {
+    //     vars: Vec::new(),
+    //     var_alias: HashMap::new(),
+    // };
+
+    // let function_registry_ptr = Rc::new(RefCell::new(function_registry));
+    // let variable_registry_ptr = Rc::new(RefCell::new(variable_registry));
+    
+    // println!("-----------");
+    // decompile(
+    //     &Program {
+    //         insts,
+    //         text_offset: text_section.data_offset,
+    //     }, 
+    //     text_section.data_offset + 0x30,
+    //     function_registry_ptr.clone(),
+    //     variable_registry_ptr.clone(),
+    // );
+
+    // let variable_registry = variable_registry_ptr.borrow();
+    // let function_registry = function_registry_ptr.borrow();
+
+    // for (entry, func) in function_registry.funcs.iter().rev() {
+    //     if func.returned_vars.len() == 0 {
+    //         print!("void ");
+    //     } else if func.returned_vars.len() == 1 {
+    //         let var_id = func.returned_vars[0];
+    //         let var = variable_registry.get_var(var_id);
+    //         print!("int{}_t ", var.size_bytes * 8);
+    //     } else {
+    //         todo!("Handle multiple return values");
+    //     }
+
+    //     print!("func_{} (", func.id);
+    //         for (ix, var_id) in func.passed_in_vars.iter().enumerate() {
+    //             if ix != func.passed_in_vars.len() - 1 {
+    //                 print!("int{}_t {}, ", 
+    //                 variable_registry.get_var(*var_id).size_bytes * 8,
+    //                 variable_registry.get_var(*var_id));
+    //             } else {
+    //                 print!("int{}_t {}", 
+    //                 variable_registry.get_var(*var_id).size_bytes * 8,
+    //                 variable_registry.get_var(*var_id));
+    //             }
+    //         }
+    //     println!(") {{");
+
+    //         for stmt in &func.bytecode {
+    //             match stmt {
+    //                 Statement::ADD(dst_var, var_a, var_b) => {
+    //                     print!("\t");
+    //                     println!("int{}_t {} = {} + {};",
+    //                         variable_registry.get_var(*dst_var).size_bytes * 8,
+    //                         variable_registry.get_var(*dst_var),
+    //                         variable_registry.get_var(*var_a),
+    //                         variable_registry.get_var(*var_b),
+    //                     );
+    //                 },
+
+    //                 Statement::MUL(dst_var, var_a, var_b) => {
+    //                     print!("\t");
+    //                     println!("int{}_t {} = {} * {};",
+    //                         variable_registry.get_var(*dst_var).size_bytes * 8,
+    //                         variable_registry.get_var(*dst_var),
+    //                         variable_registry.get_var(*var_a),
+    //                         variable_registry.get_var(*var_b),
+    //                     );
+    //                 },
+
+    //                 Statement::MOV(dst_var, _) => todo!(),
+
+    //                 Statement::SET(dst_var, val) => {
+    //                     print!("\t");
+    //                     println!("int{}_t {} = {};",
+    //                         variable_registry.get_var(*dst_var).size_bytes * 8,
+    //                         variable_registry.get_var(*dst_var),
+    //                         val
+    //                     );
+    //                 },
+
+    //                 Statement::SHL(dst_var, src_var, val) => {
+    //                     print!("\t");
+    //                     println!("int{}_t {} = {} << {};",
+    //                         variable_registry.get_var(*dst_var).size_bytes * 8,
+    //                         variable_registry.get_var(*dst_var),
+    //                         variable_registry.get_var(*src_var),
+    //                         val,
+    //                     );
+    //                 },
+
+    //                 Statement::DREF(dst_var, _) => todo!(),
+
+    //                 Statement::CALL(func_id) => {
+    //                     print!("\t");
+    //                     let ret_vars = &function_registry.funcs.get(func_id).unwrap().returned_vars;
+    //                     if ret_vars.len() == 1 {
+    //                         let local_var = variable_registry.var_alias.get(&(func.id, *func_id, ret_vars[0])).unwrap();
+    //                         print!("int{}_t {} = ",
+    //                             variable_registry.get_var(ret_vars[0]).size_bytes * 8,
+    //                             variable_registry.get_var(*local_var),
+    //                         );
+    //                     } else {
+    //                         todo!("Handle multiple return values");
+    //                     }
+
+    //                     print!("func_{}(", func_id);
+    //                     for (ix, called_input_var) in function_registry.funcs.get(func_id).unwrap().passed_in_vars.iter().enumerate() {
+    //                         if ix != function_registry.funcs.get(func_id).unwrap().passed_in_vars.len() - 1 {
+    //                             print!("{}, ", variable_registry.get_var(*variable_registry.var_alias.get(&(func.id, *func_id, *called_input_var)).unwrap()));
+    //                         } else {
+    //                             print!("{}", variable_registry.get_var(*variable_registry.var_alias.get(&(func.id, *func_id, *called_input_var)).unwrap()));
+    //                         }
+    //                     }
+    //                     println!(");")
+    //                 },
+
+    //                 Statement::RET => {
+    //                     print!("\treturn");
+    //                         if func.returned_vars.len() == 0 {
+    //                         } else if func.returned_vars.len() == 1 {
+    //                             print!(" {}", variable_registry.get_var(func.returned_vars[0]));
+    //                         } else {
+    //                             todo!("Handle multiple return values");
+    //                         }
+    //                     println!(";")
+    //                 }
+    //             }
+    //         }
+    //     println!("}}\n");
+    // }
+
+
+
+
 
     // while reader.cursor < (text_section.data_offset + text_section.data_length) as usize
     // {

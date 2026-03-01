@@ -2,7 +2,7 @@ debug/
 Debug/
 target/
 Cargo.lock
-res/test
-res/test.o
 **/*.rs.bk
 **/*.swp
+.vscode
+res/
